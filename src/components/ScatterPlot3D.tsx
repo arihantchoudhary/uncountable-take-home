@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Canvas, useThree, extend } from '@react-three/fiber';
 import { OrbitControls, Text, Html, PerspectiveCamera } from '@react-three/drei';
@@ -190,7 +191,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
       >
         <PerspectiveCamera makeDefault position={[2, 2, 2]} fov={50} />
         <Scene autoRotate={autoRotate}>
-          <Axes xLabel={xProperty} yLabel={yProperty} zLabel={zLabel} />
+          <Axes xLabel={xProperty} yLabel={yProperty} zLabel={zProperty} />
           <DataPoints
             points={dataPoints}
             colorProperty={colorProperty}
