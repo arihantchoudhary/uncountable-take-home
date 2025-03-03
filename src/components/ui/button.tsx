@@ -23,6 +23,8 @@ const buttonVariants = cva(
         purple: "bg-violet-500 text-white hover:bg-violet-600",
         teal: "bg-teal-400 text-white hover:bg-teal-500",
         amber: "bg-amber-400 text-white hover:bg-amber-500",
+        // New variant for white text (for Auto-Rotate button)
+        whiteText: "text-white",
       },
       size: {
         default: "h-10 px-4 py-2",

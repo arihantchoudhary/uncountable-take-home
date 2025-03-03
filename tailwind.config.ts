@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -124,6 +123,9 @@ export default {
 			backdropFilter: {
 				'none': 'none',
 				'blur': 'blur(20px)'
+			},
+			textColor: {
+				'white': '#ffffff', // Explicit white declaration for button text
 			}
 		}
 	},
