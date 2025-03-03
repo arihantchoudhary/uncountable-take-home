@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DataPoint, Property } from '@/types/dataset';
@@ -346,15 +345,14 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                   verticalAlign="top" 
                   height={36}
                   wrapperStyle={{ paddingLeft: 20 }}
-                  formatter={(value, entry) => {
-                    const { payload } = entry;
-                    if (payload && selectedPointId && payload.id === selectedPointId) {
-                      return <span className="text-xs font-medium text-blue-700">Selected: {payload.id}</span>;
+                  formatter={(value, entry: any) => {
+                    if (entry && entry.payload && selectedPointId && entry.payload.id === selectedPointId) {
+                      return <span className="text-xs font-medium text-blue-700">Selected: {entry.payload.id}</span>;
                     }
                     return <span className="text-xs font-medium text-blue-700">{value}</span>;
                   }}
-                  onClick={(data) => {
-                    if (data && data.payload) {
+                  onClick={(data: any) => {
+                    if (data && data.payload && data.payload.id) {
                       onPointSelect(data.payload.id);
                     }
                   }}
