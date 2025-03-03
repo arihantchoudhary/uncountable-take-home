@@ -14,6 +14,12 @@ const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment, experimentI
   const relevantInputs = Object.entries(experiment.inputs)
     .filter(([_, value]) => value > 0)
     .sort(([_, valueA], [__, valueB]) => valueB - valueA);
+  
+  // Format number to avoid long decimals
+  const formatNumber = (value: number) => {
+    // Limit to at most 6 decimal places and remove trailing zeros
+    return value.toFixed(6).replace(/\.?0+$/, '').replace(/\.$/, '');
+  };
 
   return (
     <Card className="glass-card w-full overflow-hidden animate-fade-in">
@@ -30,7 +36,7 @@ const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment, experimentI
               <div key={key} className="flex justify-between items-center">
                 <span className="text-muted-foreground">{key}:</span>
                 <span className="font-medium">
-                  {key === "Cure Time" ? value.toFixed(2) : value.toFixed(1)}
+                  {typeof value === 'number' ? formatNumber(value) : value}
                 </span>
               </div>
             ))}
@@ -45,7 +51,9 @@ const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment, experimentI
             {relevantInputs.slice(0, 6).map(([key, value]) => (
               <div key={key} className="flex justify-between items-center">
                 <span className="text-muted-foreground truncate pr-2">{key}:</span>
-                <span className="font-medium">{value.toFixed(1)}</span>
+                <span className="font-medium">
+                  {typeof value === 'number' ? formatNumber(value) : value}
+                </span>
               </div>
             ))}
             {relevantInputs.length > 6 && (
