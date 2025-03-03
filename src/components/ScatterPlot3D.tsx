@@ -1,11 +1,84 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DataPoint, Property } from '@/types/dataset';
-import { Layers, Info, ChevronRight, Search, ExternalLink } from 'lucide-react';
+import { 
+  Layers, Info, ChevronRight, Search, MousePointer, 
+  Clock, Droplet, Maximize2, TrendingUp, ArrowDown 
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { dataset } from '@/utils/datasetUtils';
-import { TooltipProvider, Tooltip as UITooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { 
+  TooltipProvider, 
+  Tooltip as UITooltip, 
+  TooltipTrigger, 
+  TooltipContent 
+} from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+
+// Map output keys to symbols and icons
+const getOutputSymbol = (key: string): { symbol: string; icon: React.ReactNode } => {
+  switch(key) {
+    case 'Viscosity':
+      return { symbol: 'η', icon: <Droplet className="h-3.5 w-3.5 text-blue-500" /> };
+    case 'Cure Time':
+      return { symbol: 'τ', icon: <Clock className="h-3.5 w-3.5 text-amber-500" /> };
+    case 'Elongation':
+      return { symbol: 'ε', icon: <Maximize2 className="h-3.5 w-3.5 text-green-500" /> };
+    case 'Tensile Strength':
+      return { symbol: 'σ', icon: <TrendingUp className="h-3.5 w-3.5 text-red-500" /> };
+    case 'Compression Set':
+      return { symbol: 'δ', icon: <ArrowDown className="h-3.5 w-3.5 text-purple-500" /> };
+    default:
+      return { symbol: '?', icon: null };
+  }
+};
+
+// Map input keys to symbols and icons
+const getInputSymbol = (key: string): { symbol: string; icon: React.ReactNode } => {
+  if (key.startsWith('Polymer')) {
+    const num = key.split(' ')[1];
+    return { symbol: `P${num}`, icon: <div className="h-3.5 w-3.5 rounded-full bg-blue-400 flex items-center justify-center text-[8px] text-white font-bold">{num}</div> };
+  }
+  
+  if (key.startsWith('Carbon Black')) {
+    const grade = key.includes('High') ? 'H' : 'L';
+    return { symbol: `C${grade}`, icon: <div className="h-3.5 w-3.5 rounded-full bg-gray-800 flex items-center justify-center text-[8px] text-white font-bold">{grade}</div> };
+  }
+  
+  if (key.startsWith('Silica')) {
+    const num = key.split(' ')[2];
+    return { symbol: `Si${num}`, icon: <div className="h-3.5 w-3.5 rounded-full bg-gray-300 flex items-center justify-center text-[8px] text-gray-800 font-bold">{num}</div> };
+  }
+  
+  if (key.startsWith('Plasticizer')) {
+    const num = key.split(' ')[1];
+    return { symbol: `Pl${num}`, icon: <div className="h-3.5 w-3.5 rounded-full bg-green-400 flex items-center justify-center text-[8px] text-white font-bold">{num}</div> };
+  }
+  
+  if (key === 'Antioxidant') {
+    return { symbol: 'AO', icon: <div className="h-3.5 w-3.5 rounded-full bg-red-400 flex items-center justify-center text-[8px] text-white font-bold">AO</div> };
+  }
+  
+  if (key === 'Coloring Pigment') {
+    return { symbol: 'CP', icon: <div className="h-3.5 w-3.5 rounded-full bg-purple-400 flex items-center justify-center text-[8px] text-white font-bold">CP</div> };
+  }
+  
+  if (key.startsWith('Co-Agent')) {
+    const num = key.split(' ')[1];
+    return { symbol: `CA${num}`, icon: <div className="h-3.5 w-3.5 rounded-full bg-yellow-400 flex items-center justify-center text-[8px] text-white font-bold">{num}</div> };
+  }
+  
+  if (key.startsWith('Curing Agent')) {
+    const num = key.split(' ')[2];
+    return { symbol: `Cu${num}`, icon: <div className="h-3.5 w-3.5 rounded-full bg-orange-400 flex items-center justify-center text-[8px] text-white font-bold">{num}</div> };
+  }
+  
+  if (key === 'Oven Temperature') {
+    return { symbol: 'T', icon: <div className="h-3.5 w-3.5 rounded-full bg-red-600 flex items-center justify-center text-[8px] text-white font-bold">T</div> };
+  }
+  
+  return { symbol: '?', icon: <div className="h-3.5 w-3.5 rounded-full bg-gray-400 flex items-center justify-center text-[8px] text-white font-bold">?</div> };
+};
 
 interface ScatterPlot3DProps {
   dataPoints: DataPoint[];
@@ -16,6 +89,7 @@ interface ScatterPlot3DProps {
   autoRotate: boolean;
   onPointSelect: (pointId: string) => void;
   selectedPointId: string | null;
+  onResetView?: () => void;
 }
 
 const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
@@ -27,17 +101,44 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   autoRotate,
   onPointSelect,
   selectedPointId,
+  onResetView,
 }) => {
-  const [viewAngle, setViewAngle] = useState(0);
+  // Default view angles
+  const defaultYRotation = 0;
+  const defaultXRotation = 0;
+  
+  // State for rotation angles
+  const [yRotation, setYRotation] = useState(defaultYRotation);
+  const [xRotation, setXRotation] = useState(defaultXRotation);
+  
+  const [viewZoom, setViewZoom] = useState(1);
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<DataPoint[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [showExperimentList, setShowExperimentList] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastMousePosition, setLastMousePosition] = useState({ x: 0, y: 0 });
   
   const requestRef = useRef<number | null>(null);
   const prevTimeRef = useRef<number | null>(null);
   const experimentListRef = useRef<HTMLDivElement>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Reset view function
+  const handleResetView = () => {
+    setYRotation(defaultYRotation);
+    setXRotation(defaultXRotation);
+    setViewZoom(1);
+    setHoveredPointId(null);
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchOpen(false);
+    // If the parent component provided an onResetView handler, call it
+    if (onResetView) {
+      onResetView();
+    }
+  };
 
   useEffect(() => {
     if (!autoRotate) {
@@ -49,7 +150,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
 
     const animate = (time: number) => {
       if (prevTimeRef.current !== null) {
-        setViewAngle((angle) => (angle + 0.5) % 360);
+        setYRotation((angle) => (angle + 0.5) % 360);
       }
       prevTimeRef.current = time;
       requestRef.current = requestAnimationFrame(animate);
@@ -86,8 +187,78 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     }
   }, [selectedPointId]);
 
+  // Mouse event handlers for rotation and zoom
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0) { // Left mouse button only
+      setIsDragging(true);
+      setLastMousePosition({ x: e.clientX, y: e.clientY });
+      
+      // Disable auto-rotate when user starts dragging
+      if (autoRotate) {
+        onAutoRotateToggle();
+      }
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      const deltaX = e.clientX - lastMousePosition.x;
+      const deltaY = e.clientY - lastMousePosition.y;
+      
+      // Update both rotations
+      setYRotation((angle) => (angle + deltaX * 0.5) % 360);
+      setXRotation((angle) => Math.max(-45, Math.min(45, angle - deltaY * 0.5)));
+      
+      setLastMousePosition({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  const handleMouseUp = (): void => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = (): void => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomFactor = 0.05;
+    const delta = e.deltaY < 0 ? zoomFactor : -zoomFactor;
+    setViewZoom((zoom) => Math.max(0.5, Math.min(2.5, zoom + delta)));
+  };
+
+  // Custom event to toggle auto-rotate
+  const onAutoRotateToggle = () => {
+    if (typeof autoRotate === 'boolean') {
+      // Component has internal state setter
+      if (onAutoRotateToggle) {
+        onAutoRotateToggle();
+      }
+    }
+  };
+
   const formatExperimentId = (id: string) => {
+    // Extract experiment number only
+    const match = id.match(/_EXP_(\d+)$/);
+    if (match) {
+      const expNum = match[1];
+      // Just return the experiment number
+      return expNum;
+    }
     return id.replace('20170', '').replace('_EXP_', '-');
+  };
+
+  // Format for display in the experiment list
+  const formatExperimentIdForList = (id: string) => {
+    // Extract date and experiment number
+    const match = id.match(/^(\d{4})(\d{2})(\d{2})_EXP_(\d+)$/);
+    if (match) {
+      const [_, year, month, day, expNum] = match;
+      // Format as MM/DD/YY - Exp #XX
+      return `${month}/${day}/17 - Exp #${expNum.padStart(2, '0')}`;
+    }
+    return id;
   };
 
   const scaleLinear = (value: number, domainMin: number, domainMax: number, rangeMin: number, rangeMax: number) => {
@@ -104,6 +275,9 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     
     return `rgb(${r}, ${g}, ${b})`;
   };
+
+  // Define the most intense blue color for the gradient
+  const intenseBlueTint = "rgb(55, 55, 255)";
 
   const projectedData = useMemo(() => {
     if (dataPoints.length === 0) return [];
@@ -122,40 +296,64 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     const colorMin = Math.min(...colorValues);
     const colorMax = Math.max(...colorValues);
 
-    const angleRad = (viewAngle * Math.PI) / 180;
-    const cos = Math.cos(angleRad);
-    const sin = Math.sin(angleRad);
+    // Convert degrees to radians for both rotations
+    const yAngleRad = (yRotation * Math.PI) / 180;
+    const xAngleRad = (xRotation * Math.PI) / 180;
+    
+    // Calculate trig values for both rotations
+    const cosY = Math.cos(yAngleRad);
+    const sinY = Math.sin(yAngleRad);
+    const cosX = Math.cos(xAngleRad);
+    const sinX = Math.sin(xAngleRad);
 
     return dataPoints.map(point => {
-      const x2d = point.x * cos - point.z * sin;
-      const z2d = point.z * cos + point.x * sin;
+      // Apply Y-axis rotation (horizontal rotation)
+      const xRotatedY = point.x * cosY - point.z * sinY;
+      const zRotatedY = point.z * cosY + point.x * sinY;
+      
+      // Apply X-axis rotation (vertical tilt)
+      const yRotatedX = point.y * cosX - zRotatedY * sinX;
+      const zRotatedX = zRotatedY * cosX + point.y * sinX;
       
       const color = getColorForValue(point.value || 0, colorMin, colorMax);
       
-      const depthFactor = 0.6 + (z2d + 1.2) * 0.4;
-      const baseSize = 20;
+      // Adjust depth factor based on the final Z position
+      const depthFactor = 0.6 + (zRotatedX + 1.2) * 0.4;
+      const baseSize = 20 * viewZoom; // Apply zoom to base size
       const depthSize = baseSize * depthFactor;
       
       const isSelected = point.id === selectedPointId;
       const isHovered = point.id === hoveredPointId;
-      const size = isSelected ? 60 : isHovered ? 40 : depthSize;
+      const size = isSelected ? 60 * viewZoom : isHovered ? 40 * viewZoom : depthSize;
       
       const opacity = isSelected ? 1 : isHovered ? 0.95 : 0.4 + depthFactor * 0.6;
       
       return {
         ...point,
-        x: x2d,
-        y: point.y,
-        z: z2d,
+        x: xRotatedY,
+        y: yRotatedX,
+        z: zRotatedX,
         color,
         size,
         opacity,
         glow: isSelected || isHovered ? true : false
       };
     }).sort((a, b) => a.z - b.z);
-  }, [dataPoints, viewAngle, selectedPointId, hoveredPointId]);
+  }, [dataPoints, yRotation, xRotation, viewZoom, selectedPointId, hoveredPointId]);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  interface TooltipProps {
+    active?: boolean;
+    payload?: Array<{
+      payload: DataPoint & {
+        color: string;
+        size: number;
+        opacity: number;
+        glow: boolean;
+      };
+    }>;
+  }
+
+  const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       
@@ -174,35 +372,36 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           }}
         >
           <p className="font-bold mb-1 text-blue-800 text-xs">{data.id}</p>
-          <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-            <span className="text-slate-500">{xProperty}:</span>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
+            <div className="flex items-center gap-1">
+              {getOutputSymbol(xProperty as string).icon}
+              <span className="text-slate-500 text-xs">{getOutputSymbol(xProperty as string).symbol}:</span>
+            </div>
             <span className="font-medium text-right text-slate-700">{formatValue(data.x)}</span>
             
-            <span className="text-slate-500">{yProperty}:</span>
+            <div className="flex items-center gap-1">
+              {getOutputSymbol(yProperty as string).icon}
+              <span className="text-slate-500 text-xs">{getOutputSymbol(yProperty as string).symbol}:</span>
+            </div>
             <span className="font-medium text-right text-slate-700">{formatValue(data.y)}</span>
             
-            <span className="text-slate-500">{zProperty}:</span>
+            <div className="flex items-center gap-1">
+              {getOutputSymbol(zProperty as string).icon}
+              <span className="text-slate-500 text-xs">{getOutputSymbol(zProperty as string).symbol}:</span>
+            </div>
             <span className="font-medium text-right text-slate-700">{formatValue(data.z)}</span>
             
             {colorProperty && (
               <>
-                <span className="text-slate-500">{colorProperty}:</span>
+                <div className="flex items-center gap-1">
+                  {getOutputSymbol(colorProperty as string).icon}
+                  <span className="text-slate-500 text-xs">{getOutputSymbol(colorProperty as string).symbol}:</span>
+                </div>
                 <span className="font-medium text-right text-slate-700">{formatValue(data.value)}</span>
               </>
             )}
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-full mt-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-0.5 h-auto text-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPointSelect(data.id);
-            }}
-          >
-            <ExternalLink size={10} className="mr-1" />
-            View Full Experiment
-          </Button>
+          
         </div>
       );
     }
@@ -210,8 +409,17 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     return null;
   };
 
-  const handleChartClick = (data: any) => {
-    if (data && data.activePayload && data.activePayload.length > 0) {
+  interface ChartClickData {
+    activePayload?: Array<{
+      payload: {
+        id: string;
+      };
+    }>;
+  }
+
+  const handleChartClick = (data: ChartClickData) => {
+    // Only trigger point selection if not dragging
+    if (!isDragging && data && data.activePayload && data.activePayload.length > 0) {
       onPointSelect(data.activePayload[0].payload.id);
     }
   };
@@ -221,7 +429,9 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   };
 
   const handlePointClick = (pointId: string) => {
-    onPointSelect(pointId);
+    if (!isDragging) {
+      onPointSelect(pointId);
+    }
   };
 
   const formatNumber = (value: number) => {
@@ -295,6 +505,16 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                 />
               </div>
             )}
+            
+            {/* Add Reset View button to the top panel */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetView}
+              className="text-xs ml-auto"
+            >
+              Reset View
+            </Button>
           </div>
           
           {searchResults.length > 0 ? (
@@ -304,15 +524,18 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
               </div>
               <div className="flex flex-wrap justify-center gap-2.5 p-3">
                 {searchResults.map(result => (
-                  <TooltipProvider key={`search-${result.id}`}>
-                    <UITooltip>
+                  <TooltipProvider key={`search-${result.id}`} delayDuration={0}>
+                    <UITooltip delayDuration={0}>
                       <TooltipTrigger asChild>
                         <div
-                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
-                          style={{ backgroundColor: getColorForValue(result.value || 0, colorMin, colorMax) }}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-gray-300'}`}
+                          style={{ 
+                            backgroundColor: getColorForValue(result.value || 0, colorMin, colorMax),
+                            boxShadow: result.id === selectedPointId ? '0 0 8px rgba(59, 130, 246, 0.5)' : 'none'
+                          }}
                           onClick={() => onPointSelect(result.id)}
                         >
-                          {formatExperimentId(result.id)}
+                          <span className="font-bold text-[10px] text-white text-shadow">{formatExperimentId(result.id)}</span>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom">
@@ -329,15 +552,18 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
             <div className="max-h-40 overflow-y-auto">
               <div className="flex flex-wrap justify-center gap-2.5 mb-2 px-1">
                 {legendData.map((point) => (
-                  <TooltipProvider key={`legend-${point.id}`}>
-                    <UITooltip>
+                  <TooltipProvider key={`legend-${point.id}`} delayDuration={0}>
+                    <UITooltip delayDuration={0}>
                       <TooltipTrigger asChild>
                         <div
-                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
-                          style={{ backgroundColor: getColorForValue(point.value || 0, colorMin, colorMax) }}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-gray-300'}`}
+                          style={{ 
+                            backgroundColor: getColorForValue(point.value || 0, colorMin, colorMax),
+                            boxShadow: point.id === selectedPointId ? '0 0 8px rgba(59, 130, 246, 0.5)' : 'none'
+                          }}
                           onClick={() => onPointSelect(point.id)}
                         >
-                          {formatExperimentId(point.id)}
+                          <span className="font-bold text-[10px] text-white text-shadow">{formatExperimentId(point.id)}</span>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom">
@@ -352,7 +578,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           
           {selectedPointId && (
             <div className="text-xs font-medium mt-1 p-1.5 bg-blue-100/70 rounded text-blue-700 text-center">
-              Selected: {selectedPointId}
+              Selected: Exp #{selectedPointId.match(/_EXP_(\d+)$/)?.[1].padStart(2, '0') || ''} ({selectedPointId.match(/^(\d{4})(\d{2})(\d{2})_/)?.[0].replace(/^(\d{4})(\d{2})(\d{2})_/, '$2/$3/17')})
             </div>
           )}
         </div>
@@ -381,16 +607,33 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                   <Info size={14} className="text-blue-500" />
                   <span className="font-medium">{colorProperty}</span>
                 </div>
-                <div className="h-2.5 w-full bg-gradient-to-r from-white to-blue-500 rounded-sm" />
+                {/* Updated gradient to match the intense blue color */}
+                <div className="h-2.5 w-full rounded-sm" style={{ background: `linear-gradient(to right, white, ${intenseBlueTint})` }} />
                 <div className="flex justify-between mt-1 text-gray-600">
                   <span>{colorMin.toFixed(1)}</span>
                   <span>{colorMax.toFixed(1)}</span>
                 </div>
               </div>
             )}
+            
+            {/* Rotation info with X and Y rotation values */}
+            <div className="mt-2 text-gray-600 text-[10px]">
+              <div className="flex items-center gap-1">
+                <MousePointer size={10} />
+                <span>Drag to rotate (X: {xRotation.toFixed(1)}°, Y: {yRotation.toFixed(1)}°)</span>
+              </div>
+            </div>
           </div>
           
-          <div className="w-full h-full bg-gradient-to-b from-[#f8faff] to-[#eef4ff] animate-fade-in">
+          <div 
+            ref={chartContainerRef}
+            className={`w-full h-full bg-gradient-to-b from-[#f8faff] to-[#eef4ff] animate-fade-in ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            onWheel={handleWheel}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart
                 margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
@@ -407,7 +650,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                   type="number" 
                   dataKey="x" 
                   name={xProperty} 
-                  domain={[-1.2, 1.2]}
+                  domain={[-1.2, 1.2]} 
                   label={{ value: xProperty, position: 'bottom', style: { fill: '#6366f1', fontSize: 12, fontWeight: 500 } }}
                   tick={{ fontSize: 10, fill: '#64748b' }}
                   axisLine={{ stroke: '#cbd5e1' }}
@@ -447,7 +690,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                     onMouseEnter={() => handlePointHover(point.id)}
                     onMouseLeave={() => handlePointHover(null)}
                     onClick={() => handlePointClick(point.id)}
-                    cursor="pointer"
+                    cursor={isDragging ? 'grabbing' : 'pointer'}
                   />
                 ))}
               </ScatterChart>
@@ -477,49 +720,82 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                   className={`p-2 text-xs hover:bg-gray-50 cursor-pointer ${experimentId === selectedPointId ? 'bg-blue-50' : ''}`}
                   onClick={() => onPointSelect(experimentId)}
                 >
-                  {experimentId}
+                  {formatExperimentIdForList(experimentId)}
                 </div>
               ))}
             </div>
           </div>
 
           {selectedPointId && dataset[selectedPointId] && (
-            <div className="border-t border-purple-100 p-4 bg-purple-50/50 max-h-1/2 overflow-y-auto">
-              <h3 className="font-medium text-sm mb-2 text-purple-800">
-                {selectedPointId}
+            <div className="border-t border-blue-100 p-4 bg-blue-50/50 max-h-1/2 overflow-y-auto">
+              <h3 className="font-medium text-sm mb-2 text-blue-800">
+                Experiment #{selectedPointId.match(/_EXP_(\d+)$/)?.[1].padStart(2, '0') || ''}
+                <div className="text-xs text-blue-600 font-normal mt-0.5">
+                  {selectedPointId.match(/^(\d{4})(\d{2})(\d{2})_/)?.[0].replace(/^(\d{4})(\d{2})(\d{2})_/, '$2/$3/17')}
+                </div>
               </h3>
               
               <div className="mb-3">
-                <h4 className="text-xs font-medium text-purple-700/80 mb-1.5 uppercase">Outputs</h4>
-                <div className="bg-white rounded-lg border border-purple-100 p-3 text-xs">
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(dataset[selectedPointId].outputs).map(([key, value]) => (
-                      <div key={key} className="flex justify-between">
-                        <span className="text-slate-600">{key}:</span>
-                        <span className="font-medium text-slate-800">
-                          {typeof value === 'number' ? formatNumber(value) : value}
-                        </span>
-                      </div>
-                    ))}
+                <h4 className="text-xs font-medium text-blue-700/80 mb-1.5 uppercase">Outputs</h4>
+                <div className="bg-white rounded-lg border border-blue-100 p-3 text-xs">
+                  <div className="grid grid-cols-1 gap-2">
+                    {Object.entries(dataset[selectedPointId].outputs).map(([key, value]) => {
+                      const { symbol, icon } = getOutputSymbol(key);
+                      return (
+                        <div key={key} className="flex justify-between items-center">
+                          <TooltipProvider delayDuration={0}>
+                            <UITooltip delayDuration={0}>
+                              <TooltipTrigger asChild>
+                                <span className="flex items-center gap-1.5 text-slate-600">
+                                  {icon}
+                                  <span className="font-medium text-sm">{symbol}:</span>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="text-xs">
+                                {key}
+                              </TooltipContent>
+                            </UITooltip>
+                          </TooltipProvider>
+                          <span className="font-medium text-right overflow-hidden text-ellipsis" style={{ maxWidth: '60%' }}>
+                            {typeof value === 'number' ? formatNumber(value) : String(value)}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
               
               <div>
-                <h4 className="text-xs font-medium text-purple-700/80 mb-1.5 uppercase">Key Inputs</h4>
-                <div className="bg-white rounded-lg border border-purple-100 p-3 text-xs">
+                <h4 className="text-xs font-medium text-blue-700/80 mb-1.5 uppercase">Key Inputs</h4>
+                <div className="bg-white rounded-lg border border-blue-100 p-3 text-xs">
                   <div className="grid grid-cols-1 gap-2">
                     {Object.entries(dataset[selectedPointId].inputs)
                       .filter(([_, value]) => typeof value === 'number' && value > 0)
                       .sort(([_, a], [__, b]) => (b as number) - (a as number))
-                      .map(([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-slate-600 truncate mr-2">{key}:</span>
-                          <span className="font-medium text-slate-800">
-                            {typeof value === 'number' ? formatNumber(value) : value}
-                          </span>
-                        </div>
-                      ))
+                      .map(([key, value]) => {
+                        const { symbol, icon } = getInputSymbol(key);
+                        return (
+                          <div key={key} className="flex justify-between items-center">
+                            <TooltipProvider delayDuration={0}>
+                              <UITooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                  <span className="flex items-center gap-1.5 text-slate-600">
+                                    {icon}
+                                    <span className="font-medium text-sm">{symbol}:</span>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="text-xs">
+                                  {key}
+                                </TooltipContent>
+                              </UITooltip>
+                            </TooltipProvider>
+                            <span className="font-medium text-right overflow-hidden text-ellipsis" style={{ maxWidth: '60%' }}>
+                              {typeof value === 'number' ? formatNumber(value) : String(value)}
+                            </span>
+                          </div>
+                        );
+                      })
                     }
                   </div>
                 </div>

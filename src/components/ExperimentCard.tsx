@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Clock, Droplet, Maximize2, TrendingUp, ArrowDown } from 'lucide-react';
+import InfoButton from './ui/info-button';
 
 interface ExperimentCardProps {
   experiment: Experiment;
@@ -100,7 +101,20 @@ const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment, experimentI
       </CardHeader>
       <CardContent className="grid gap-4 p-4">
         <div>
-          <h4 className="control-label mb-1">Outputs</h4>
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="control-label">Outputs</h4>
+            <InfoButton 
+              title="Experiment Outputs" 
+              content={
+                <div className="space-y-2">
+                  <p>These are the measured output properties for this experiment.</p>
+                  <p>Output properties are the results of the experiment, such as viscosity, cure time, and tensile strength.</p>
+                  <p>Hover over the symbols to see the full property names.</p>
+                </div>
+              }
+              position="right"
+            />
+          </div>
           <div className="grid grid-cols-1 gap-2 text-sm">
             {Object.entries(experiment.outputs).map(([key, value]) => {
               const { symbol, icon } = getOutputSymbol(key);
@@ -131,7 +145,20 @@ const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment, experimentI
         <Separator />
         
         <div>
-          <h4 className="control-label mb-1">Key Inputs</h4>
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="control-label">Key Inputs</h4>
+            <InfoButton 
+              title="Experiment Inputs" 
+              content={
+                <div className="space-y-2">
+                  <p>These are the input parameters used for this experiment.</p>
+                  <p>Input parameters are the variables that were controlled during the experiment, such as polymer types and amounts.</p>
+                  <p>Only non-zero inputs are shown. Hover over the symbols to see the full parameter names.</p>
+                </div>
+              }
+              position="right"
+            />
+          </div>
           <div className="grid grid-cols-1 gap-2 text-sm">
             {relevantInputs.slice(0, 6).map(([key, value]) => {
               const { symbol, icon } = getInputSymbol(key);

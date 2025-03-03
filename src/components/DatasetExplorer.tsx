@@ -3,6 +3,8 @@ import ScatterPlot3D from './ScatterPlot3D';
 import ControlPanel from './ControlPanel';
 import ExperimentCard from './ExperimentCard';
 import WelcomeGuide from './WelcomeGuide';
+import PanelInfoPopup from './PanelInfoPopup';
+import InfoButton from './ui/info-button';
 import { 
   createDataPoints, 
   calculatePropertyStats, 
@@ -17,6 +19,7 @@ import {
 } from '@/types/dataset';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Activity, BarChart2, Database, Filter, RefreshCw, Beaker } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -49,12 +52,21 @@ const DatasetExplorer: React.FC = () => {
   const { toast } = useToast();
   const hasLoadedRef = useRef(false);
   const [showWelcomeGuide, setShowWelcomeGuide] = useState(false);
+  const [showPanelInfoPopup, setShowPanelInfoPopup] = useState(false);
   
   // Check if welcome guide should be shown
   useEffect(() => {
     const hasSeenGuide = localStorage.getItem('welcomeGuideShown') === 'true';
     if (!hasSeenGuide) {
       setShowWelcomeGuide(true);
+    }
+  }, []);
+  
+  // Check if panel info popup should be shown
+  useEffect(() => {
+    const hasSeenPanelInfo = localStorage.getItem('panelInfoPopupShown') === 'true';
+    if (!hasSeenPanelInfo) {
+      setShowPanelInfoPopup(true);
     }
   }, []);
 
@@ -168,6 +180,7 @@ const DatasetExplorer: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col">
       {showWelcomeGuide && <WelcomeGuide onClose={() => setShowWelcomeGuide(false)} />}
+      {showPanelInfoPopup && <PanelInfoPopup onClose={() => setShowPanelInfoPopup(false)} />}
       <header className="bg-white text-blue-900 shadow-md mb-6">
         <div className="container mx-auto py-4 px-6">
           <div className="flex items-center justify-between">
@@ -176,6 +189,19 @@ const DatasetExplorer: React.FC = () => {
                 <Beaker className="h-6 w-6 mr-2 text-primary" />
                 Uncountable Dataset Visualization
               </h1>
+              <div className="ml-2">
+                <InfoButton 
+                  title="Dataset Explorer" 
+                  content={
+                    <div className="space-y-2">
+                      <p>This application helps you explore relationships between different properties in the dataset.</p>
+                      <p>Click the question mark icons throughout the app to learn more about each panel.</p>
+                      <p>You can also click the "Show Tutorial" button to see the full tutorial again.</p>
+                    </div>
+                  }
+                  position="bottom"
+                />
+              </div>
             </div>
             
             <div className="flex items-center gap-3">
@@ -192,6 +218,15 @@ const DatasetExplorer: React.FC = () => {
                   {filteredExperiments.length} of {Object.keys(dataset).length}
                 </Badge>
               )}
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowPanelInfoPopup(true)}
+                className="ml-2 text-xs"
+              >
+                Show Tutorial
+              </Button>
             </div>
           </div>
         </div>
@@ -203,6 +238,20 @@ const DatasetExplorer: React.FC = () => {
             <div className="flex items-center gap-2 mb-4">
               <BarChart2 className="text-primary h-5 w-5" />
               <h2 className="font-semibold text-base">Control Panel</h2>
+              <div className="ml-auto">
+                <InfoButton 
+                  title="Control Panel" 
+                  content={
+                    <div className="space-y-2">
+                      <p>The Control Panel allows you to configure the 3D visualization.</p>
+                      <p>You can select properties for each axis and color, apply filters, and control the auto-rotation.</p>
+                      <p>Use the "Axis & Color" tab to select which properties to display on each axis.</p>
+                      <p>Use the "Filters" tab to narrow down the displayed experiments based on property values.</p>
+                    </div>
+                  }
+                  position="right"
+                />
+              </div>
             </div>
             <ControlPanel
               onPropertiesChange={handlePropertiesChange}
@@ -216,7 +265,7 @@ const DatasetExplorer: React.FC = () => {
           </Card>
         </div>
         
-        <div className="md:col-span-2 lg:col-span-2 h-[450px] md:h-[600px]">
+        <div className="md:col-span-2 lg:col-span-2 h-[450px] md:h-[600px] relative">
           {isLoading ? (
             <Card className="w-full h-full glass-card flex flex-col items-center justify-center">
               <div className="loading-spinner mb-4" />
@@ -241,6 +290,21 @@ const DatasetExplorer: React.FC = () => {
             </Card>
           ) : (
             <Card className="w-full h-full overflow-hidden border-none glass-card">
+              <div className="absolute top-2 right-2 z-10">
+                <InfoButton 
+                  title="3D Visualization" 
+                  content={
+                    <div className="space-y-2">
+                      <p>The 3D Visualization displays a scatter plot where each point represents an experiment.</p>
+                      <p>Drag to rotate the view and see the data from different angles.</p>
+                      <p>Scroll to zoom in and out.</p>
+                      <p>Click on any point to view detailed information about that experiment.</p>
+                      <p>The color of each point corresponds to the value of the selected color property.</p>
+                    </div>
+                  }
+                  position="left"
+                />
+              </div>
               <Suspense fallback={
                 <div className="w-full h-full flex items-center justify-center chart-area">
                   <div className="loading-spinner" />
@@ -268,6 +332,19 @@ const DatasetExplorer: React.FC = () => {
             <h2 className="font-semibold text-base mb-3 flex items-center gap-2">
               <Database className="h-4 w-4 text-primary" />
               {selectedPointId ? 'Selected Experiment' : 'Select an experiment'}
+              <div className="ml-auto">
+                <InfoButton 
+                  title="Experiment Details" 
+                  content={
+                    <div className="space-y-2">
+                      <p>This panel shows detailed information about the selected experiment.</p>
+                      <p>It displays all output properties and key input parameters for the selected experiment.</p>
+                      <p>Click on a data point in the 3D visualization or an experiment in the list to view its details here.</p>
+                    </div>
+                  }
+                  position="left"
+                />
+              </div>
             </h2>
             
             {selectedPointId ? (
@@ -290,6 +367,18 @@ const DatasetExplorer: React.FC = () => {
             <h3 className="font-medium mb-3 flex items-center gap-2">
               <Info className="h-4 w-4 text-primary" />
               Tips
+              <div className="ml-auto">
+                <InfoButton 
+                  title="Tips" 
+                  content={
+                    <div className="space-y-2">
+                      <p>These tips provide quick reminders on how to interact with the visualization.</p>
+                      <p>Click and drag to rotate the view, use the scroll wheel to zoom, and click on points to select experiments.</p>
+                    </div>
+                  }
+                  position="left"
+                />
+              </div>
             </h3>
             <ul className="space-y-2 text-sm">
               {[

@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Toggle } from '@/components/ui/toggle';
 import { CheckCircle, RefreshCw, RotateCw } from 'lucide-react';
+import InfoButton from './ui/info-button';
 import { 
   Property, 
   PropertyStats, 
@@ -138,14 +139,52 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       <CardContent className="p-4 overflow-y-auto flex-grow">
         <Tabs defaultValue="axis" className="w-full">
           <TabsList className="grid grid-cols-2 mb-4">
-            <TabsTrigger value="axis">Axis & Color</TabsTrigger>
-            <TabsTrigger value="filters">Filters</TabsTrigger>
+            <TabsTrigger value="axis" className="flex items-center gap-1">
+              Axis & Color
+              <InfoButton 
+                title="Axis & Color" 
+                content={
+                  <div className="space-y-2">
+                    <p>Configure which properties are displayed on each axis of the 3D visualization.</p>
+                    <p>X, Y, and Z axes determine the position of each point in the 3D space.</p>
+                    <p>Color determines the color coding of each point based on the selected property.</p>
+                  </div>
+                }
+                position="bottom"
+              />
+            </TabsTrigger>
+            <TabsTrigger value="filters" className="flex items-center gap-1">
+              Filters
+              <InfoButton 
+                title="Filters" 
+                content={
+                  <div className="space-y-2">
+                    <p>Filter experiments based on property values.</p>
+                    <p>Select a property and adjust the range slider to show only experiments within that range.</p>
+                    <p>Use the Reset Filters button to clear all filters.</p>
+                  </div>
+                }
+                position="bottom"
+              />
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="axis" className="space-y-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="control-label">X Axis</label>
+                <div className="flex items-center justify-between">
+                  <label className="control-label">X Axis</label>
+                  <InfoButton 
+                    title="X Axis" 
+                    content={
+                      <div className="space-y-2">
+                        <p>Select the property to display on the X axis of the 3D visualization.</p>
+                        <p>This determines the horizontal position of each point.</p>
+                      </div>
+                    }
+                    position="right"
+                  />
+                </div>
                 <Select value={xProperty} onValueChange={handleXPropertyChange}>
                   <SelectTrigger>
                     <SelectValue />
@@ -161,7 +200,19 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
               
               <div className="space-y-2">
-                <label className="control-label">Y Axis</label>
+                <div className="flex items-center justify-between">
+                  <label className="control-label">Y Axis</label>
+                  <InfoButton 
+                    title="Y Axis" 
+                    content={
+                      <div className="space-y-2">
+                        <p>Select the property to display on the Y axis of the 3D visualization.</p>
+                        <p>This determines the vertical position of each point.</p>
+                      </div>
+                    }
+                    position="right"
+                  />
+                </div>
                 <Select value={yProperty} onValueChange={handleYPropertyChange}>
                   <SelectTrigger>
                     <SelectValue />
@@ -177,7 +228,19 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
               
               <div className="space-y-2">
-                <label className="control-label">Z Axis</label>
+                <div className="flex items-center justify-between">
+                  <label className="control-label">Z Axis</label>
+                  <InfoButton 
+                    title="Z Axis" 
+                    content={
+                      <div className="space-y-2">
+                        <p>Select the property to display on the Z axis of the 3D visualization.</p>
+                        <p>This determines the depth position of each point.</p>
+                      </div>
+                    }
+                    position="right"
+                  />
+                </div>
                 <Select value={zProperty} onValueChange={handleZPropertyChange}>
                   <SelectTrigger>
                     <SelectValue />
@@ -193,7 +256,20 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
               
               <div className="space-y-2">
-                <label className="control-label">Color By</label>
+                <div className="flex items-center justify-between">
+                  <label className="control-label">Color By</label>
+                  <InfoButton 
+                    title="Color By" 
+                    content={
+                      <div className="space-y-2">
+                        <p>Select the property to use for color coding the points.</p>
+                        <p>Points will be colored based on their value for this property.</p>
+                        <p>This helps visualize an additional dimension beyond the X, Y, and Z axes.</p>
+                      </div>
+                    }
+                    position="right"
+                  />
+                </div>
                 <Select value={colorProperty} onValueChange={handleColorPropertyChange}>
                   <SelectTrigger>
                     <SelectValue />
@@ -235,7 +311,19 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           <TabsContent value="filters" className="space-y-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="control-label">Filter Property</label>
+                <div className="flex items-center justify-between">
+                  <label className="control-label">Filter Property</label>
+                  <InfoButton 
+                    title="Filter Property" 
+                    content={
+                      <div className="space-y-2">
+                        <p>Select which property to filter by.</p>
+                        <p>You can filter experiments based on any property in the dataset.</p>
+                      </div>
+                    }
+                    position="right"
+                  />
+                </div>
                 <Select value={selectedFilterProperty} onValueChange={handleFilterPropertyChange}>
                   <SelectTrigger>
                     <SelectValue />
@@ -252,7 +340,20 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <label className="control-label">Range</label>
+                  <div className="flex items-center gap-1">
+                    <label className="control-label">Range</label>
+                    <InfoButton 
+                      title="Range Filter" 
+                      content={
+                        <div className="space-y-2">
+                          <p>Adjust the range to filter experiments.</p>
+                          <p>Only experiments with values within this range will be displayed.</p>
+                          <p>The slider shows the minimum and maximum values for the selected property.</p>
+                        </div>
+                      }
+                      position="right"
+                    />
+                  </div>
                   <div className="text-xs font-mono">
                     {filterRange[0].toFixed(1)} - {filterRange[1].toFixed(1)}
                   </div>
