@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ScatterPlot3D from './ScatterPlot3D';
 import ControlPanel from './ControlPanel';
@@ -18,7 +17,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Motion } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 const DatasetExplorer: React.FC = () => {
   // State for selected properties
@@ -134,7 +133,7 @@ const DatasetExplorer: React.FC = () => {
         <div className="container mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Motion className="h-6 w-6 text-primary" />
+              <Activity className="h-6 w-6 text-primary" />
               <h1 className="text-2xl font-semibold tracking-tight">
                 Polymer Experiment Explorer
               </h1>

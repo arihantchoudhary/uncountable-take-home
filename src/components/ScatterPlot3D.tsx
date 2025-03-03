@@ -196,7 +196,7 @@ const Axes: React.FC<{
 const Scene: React.FC<{
   children: React.ReactNode;
   autoRotate: boolean;
-  onResetCamera?: () => void;
+  onResetCamera?: React.MutableRefObject<(() => void) | null>;
 }> = ({ children, autoRotate, onResetCamera }) => {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
@@ -212,7 +212,7 @@ const Scene: React.FC<{
       };
       
       // Expose the reset function
-      (onResetCamera as any).current = resetCamera;
+      onResetCamera.current = resetCamera;
     }
   }, [camera, onResetCamera]);
   
@@ -246,7 +246,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   onPointSelect,
   selectedPointId,
 }) => {
-  const resetCameraRef = useRef<any>(null);
+  const resetCameraRef = useRef<(() => void) | null>(null);
   
   const handleResetCamera = () => {
     if (resetCameraRef.current) {
