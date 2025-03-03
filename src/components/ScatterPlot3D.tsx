@@ -1,12 +1,10 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Canvas, useThree, extend } from '@react-three/fiber';
-import { OrbitControls, Text, Html, PerspectiveCamera } from '@react-three/drei';
-import * as THREE from 'three';
+import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DataPoint, Property } from '@/types/dataset';
-
-// Extend THREE elements so they're recognized properly
-extend({ Line: THREE.Line });
+import { Layers, Info, ChevronRight, Search, ExternalLink } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { dataset } from '@/utils/datasetUtils';
 
 interface ScatterPlot3DProps {
   dataPoints: DataPoint[];
@@ -19,186 +17,6 @@ interface ScatterPlot3DProps {
   selectedPointId: string | null;
 }
 
-// Helper to map a value to a color
-const mapValueToColor = (value: number, min: number, max: number): string => {
-  const normalized = min === max ? 0.5 : (value - min) / (max - min);
-  if (normalized < 0.25) {
-    const r = 0;
-    const g = Math.round(255 * (normalized * 4));
-    const b = 255;
-    return `rgb(${r}, ${g}, ${b})`;
-  } else if (normalized < 0.5) {
-    const r = 0;
-    const g = 255;
-    const b = Math.round(255 * (1 - (normalized - 0.25) * 4));
-    return `rgb(${r}, ${g}, ${b})`;
-  } else if (normalized < 0.75) {
-    const r = Math.round(255 * ((normalized - 0.5) * 4));
-    const g = 255;
-    const b = 0;
-    return `rgb(${r}, ${g}, ${b})`;
-  } else {
-    const r = 255;
-    const g = Math.round(255 * (1 - (normalized - 0.75) * 4));
-    const b = 0;
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-};
-
-// Fixed AxisLine component with proper typing and implementation
-const AxisLine = ({ start, end, color }: { start: [number, number, number], end: [number, number, number], color: string }) => {
-  const points = useMemo(() => {
-    const points = [];
-    points.push(new THREE.Vector3(...start));
-    points.push(new THREE.Vector3(...end));
-    return points;
-  }, [start, end]);
-
-  return (
-    <line>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={points.length}
-          array={new Float32Array(points.flatMap(p => [p.x, p.y, p.z]))}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <lineBasicMaterial color={color} />
-    </line>
-  );
-};
-
-// DataPoints component with fixed implementation for colorProperty
-const DataPoints = ({ points, colorProperty, selectedPointId, onSelect }: {
-  points: DataPoint[];
-  colorProperty: Property;
-  selectedPointId: string | null;
-  onSelect: (id: string) => void;
-}) => {
-  const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
-  
-  // Get values for the specified colorProperty instead of a generic "value"
-  const allValues = points.map(p => {
-    // Safely access the color property value from the point
-    return typeof p[colorProperty as keyof DataPoint] === 'number' 
-      ? p[colorProperty as keyof DataPoint] as number
-      : 0; // Default to 0 if property doesn't exist or isn't a number
-  });
-  
-  const minValue = Math.min(...allValues);
-  const maxValue = Math.max(...allValues);
-
-  return (
-    <group>
-      {points.map((point) => {
-        const isSelected = selectedPointId === point.id;
-        const isHovered = hoveredPointId === point.id;
-        
-        // Get the actual value for the specified colorProperty
-        const value = typeof point[colorProperty as keyof DataPoint] === 'number' 
-          ? point[colorProperty as keyof DataPoint] as number
-          : 0;
-          
-        const color = mapValueToColor(value, minValue, maxValue);
-
-        return (
-          <mesh
-            key={point.id}
-            position={[point.x, point.y, point.z]}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(point.id);
-            }}
-            onPointerOver={(e) => {
-              e.stopPropagation();
-              setHoveredPointId(point.id);
-            }}
-            onPointerOut={() => setHoveredPointId(null)}
-          >
-            <sphereGeometry args={[isSelected ? 0.05 : isHovered ? 0.04 : 0.025]} />
-            <meshStandardMaterial 
-              color={color}
-              emissive={isSelected || isHovered ? color : "#000000"}
-              emissiveIntensity={isSelected ? 0.6 : isHovered ? 0.3 : 0}
-              roughness={0.3}
-              metalness={0.8}
-            />
-            {(isSelected || isHovered) && (
-              <Html position={[0, 0.07, 0]} center className="pointer-events-none">
-                <div className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md text-xs shadow-md border border-gray-200 whitespace-nowrap">
-                  <div className="font-semibold text-center mb-1">{point.id}</div>
-                  <div className="text-muted-foreground flex justify-between gap-2">
-                    <span>{colorProperty}:</span>
-                    <span className="font-medium">{value.toFixed(1)}</span>
-                  </div>
-                </div>
-              </Html>
-            )}
-          </mesh>
-        );
-      })}
-    </group>
-  );
-};
-
-// Simplified Axes component
-const Axes = ({ xLabel, yLabel, zLabel }: { xLabel: string; yLabel: string; zLabel: string }) => {
-  return (
-    <group>
-      <AxisLine start={[-1.2, 0, 0]} end={[1.2, 0, 0]} color="hsl(0, 0%, 30%)" />
-      <Text position={[1.3, 0, 0]} fontSize={0.1} color="hsl(0, 0%, 50%)" anchorX="left">
-        {xLabel}
-      </Text>
-      <AxisLine start={[0, -1.2, 0]} end={[0, 1.2, 0]} color="hsl(0, 0%, 30%)" />
-      <Text position={[0, 1.3, 0]} fontSize={0.1} color="hsl(0, 0%, 50%)" anchorX="center" anchorY="bottom">
-        {yLabel}
-      </Text>
-      <AxisLine start={[0, 0, -1.2]} end={[0, 0, 1.2]} color="hsl(0, 0%, 30%)" />
-      <Text position={[0, 0, 1.3]} fontSize={0.1} color="hsl(0, 0%, 50%)" anchorX="center">
-        {zLabel}
-      </Text>
-    </group>
-  );
-};
-
-// Scene setup with grid and controls
-const Scene = ({ children, autoRotate }: { children: React.ReactNode; autoRotate: boolean; }) => {
-  const controlsRef = useRef<any>(null);
-  const { camera } = useThree();
-
-  const resetCamera = () => {
-    camera.position.set(2, 2, 2);
-    camera.lookAt(0, 0, 0);
-    if (controlsRef.current) {
-      controlsRef.current.reset();
-    }
-  };
-
-  useEffect(() => { 
-    resetCamera();
-  }, []);
-
-  return (
-    <>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
-      <OrbitControls
-        ref={controlsRef}
-        autoRotate={autoRotate}
-        autoRotateSpeed={0.5}
-        enableDamping
-        dampingFactor={0.05}
-        minDistance={1.5}
-        maxDistance={10}
-      />
-      <gridHelper args={[2, 10]} position={[0, -1.1, 0]} />
-      {children}
-    </>
-  );
-};
-
-// Main component with error boundary
 const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   dataPoints,
   xProperty,
@@ -209,86 +27,463 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   onPointSelect,
   selectedPointId,
 }) => {
-  const [key, setKey] = useState(0);
-  const handleResetCamera = () => setKey(prev => prev + 1);
+  const [viewAngle, setViewAngle] = useState(0);
+  const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<DataPoint[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [showExperimentList, setShowExperimentList] = useState(true);
+  
+  const requestRef = useRef<number | null>(null);
+  const prevTimeRef = useRef<number | null>(null);
+  const experimentListRef = useRef<HTMLDivElement>(null);
 
-  // Normalize data to fit within visualization bounds
-  const normalizedDataPoints = useMemo(() => {
-    if (!dataPoints || dataPoints.length === 0) {
-      return [];
+  // Animation loop for rotation
+  useEffect(() => {
+    if (!autoRotate) {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      return;
+    }
+
+    const animate = (time: number) => {
+      if (prevTimeRef.current !== null) {
+        setViewAngle((angle) => (angle + 0.5) % 360);
+      }
+      prevTimeRef.current = time;
+      requestRef.current = requestAnimationFrame(animate);
+    };
+
+    requestRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    };
+  }, [autoRotate]);
+
+  // Handle search
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setSearchResults([]);
+      return;
     }
     
-    // Extract values for each axis
-    const xValues = dataPoints.map(p => p[xProperty as keyof DataPoint] as number);
-    const yValues = dataPoints.map(p => p[yProperty as keyof DataPoint] as number);
-    const zValues = dataPoints.map(p => p[zProperty as keyof DataPoint] as number);
+    const query = searchQuery.toLowerCase();
+    const results = dataPoints.filter(point => 
+      point.id.toLowerCase().includes(query)
+    );
     
-    // Calculate min/max for each axis
+    setSearchResults(results);
+  }, [searchQuery, dataPoints]);
+
+  // Scroll selected item into view in experiment list
+  useEffect(() => {
+    if (selectedPointId && experimentListRef.current) {
+      const selectedElement = experimentListRef.current.querySelector(`[data-id="${selectedPointId}"]`);
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [selectedPointId]);
+
+  // Linear scale - maps from one range to another
+  const scaleLinear = (value: number, domainMin: number, domainMax: number, rangeMin: number, rangeMax: number) => {
+    // Handle edge cases
+    if (domainMax === domainMin) return rangeMin;
+    // Linear mapping
+    return rangeMin + ((value - domainMin) / (domainMax - domainMin)) * (rangeMax - rangeMin);
+  };
+  
+  // Custom color interpolation (blue -> green -> red)
+  const getColorForValue = (value: number, min: number, max: number) => {
+    // Normalize value to 0-1 range
+    const normalized = scaleLinear(value, min, max, 0, 1);
+    
+    let r, g, b;
+    if (normalized < 0.33) {
+      // Blue to Cyan to Green (0-0.33)
+      r = 0;
+      g = Math.round(255 * (normalized * 3));
+      b = 255;
+    } else if (normalized < 0.66) {
+      // Green to Yellow to Red (0.33-0.66)
+      r = Math.round(255 * ((normalized - 0.33) * 3));
+      g = 255;
+      b = Math.round(255 * (1 - (normalized - 0.33) * 3));
+    } else {
+      // Red (0.66-1)
+      r = 255;
+      g = Math.round(255 * (1 - (normalized - 0.66) * 3));
+      b = 0;
+    }
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
+  // Create 3D projection from data points
+  const projectedData = useMemo(() => {
+    if (dataPoints.length === 0) return [];
+
+    // Find min/max values for normalization
+    const xValues = dataPoints.map(p => p.x);
+    const yValues = dataPoints.map(p => p.y);
+    const zValues = dataPoints.map(p => p.z);
+    const colorValues = dataPoints.map(p => p.value || 0);
+    
     const xMin = Math.min(...xValues);
     const xMax = Math.max(...xValues);
     const yMin = Math.min(...yValues);
     const yMax = Math.max(...yValues);
     const zMin = Math.min(...zValues);
     const zMax = Math.max(...zValues);
-    
-    // Create normalized points
+    const colorMin = Math.min(...colorValues);
+    const colorMax = Math.max(...colorValues);
+
+    // Convert angle to radians
+    const angleRad = (viewAngle * Math.PI) / 180;
+    const cos = Math.cos(angleRad);
+    const sin = Math.sin(angleRad);
+
+    // Create projected data points with rotation
     return dataPoints.map(point => {
-      // Normalize each value to range -1 to 1
-      const x = xMin === xMax ? 0 : (2 * ((point[xProperty as keyof DataPoint] as number) - xMin) / (xMax - xMin)) - 1;
-      const y = yMin === yMax ? 0 : (2 * ((point[yProperty as keyof DataPoint] as number) - yMin) / (yMax - yMin)) - 1;
-      const z = zMin === zMax ? 0 : (2 * ((point[zProperty as keyof DataPoint] as number) - zMin) / (zMax - zMin)) - 1;
+      // Project 3D to 2D with rotation around Y axis
+      const x2d = point.x * cos - point.z * sin;
+      const z2d = point.z * cos + point.x * sin;
+      
+      // Calculate color
+      const color = getColorForValue(point.value || 0, colorMin, colorMax);
+      
+      // Use the z-coordinate to influence the point size for depth effect
+      const depthSize = 40 + (z2d + 1) * 30;
+      
+      // Emphasize selected or hovered points
+      const isSelected = point.id === selectedPointId;
+      const isHovered = point.id === hoveredPointId;
+      const size = isSelected ? 100 : isHovered ? 80 : depthSize;
+      
+      const opacity = isSelected ? 1 : isHovered ? 0.9 : 0.7;
       
       return {
         ...point,
-        x,
-        y,
-        z
+        x: x2d,
+        y: point.y,
+        z: z2d,
+        color,
+        size,
+        opacity
       };
-    });
-  }, [dataPoints, xProperty, yProperty, zProperty]);
+    }).sort((a, b) => b.z - a.z); // Sort by z-depth to render back-to-front
+  }, [dataPoints, viewAngle, selectedPointId, hoveredPointId]);
+
+  // Custom tooltip content
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      
+      return (
+        <div 
+          className="bg-white/95 p-3 border border-gray-200 rounded-md shadow-lg backdrop-blur cursor-pointer"
+          onClick={() => onPointSelect(data.id)}
+        >
+          <p className="font-bold text-sm mb-1">{data.id}</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            <span className="text-gray-500">{xProperty}:</span>
+            <span className="font-medium text-right">{data.x?.toFixed(1)}</span>
+            
+            <span className="text-gray-500">{yProperty}:</span>
+            <span className="font-medium text-right">{data.y?.toFixed(1)}</span>
+            
+            <span className="text-gray-500">{zProperty}:</span>
+            <span className="font-medium text-right">{data.z?.toFixed(1)}</span>
+            
+            {colorProperty && (
+              <>
+                <span className="text-gray-500">{colorProperty}:</span>
+                <span className="font-medium text-right">{data.value?.toFixed(1)}</span>
+              </>
+            )}
+          </div>
+          <div className="mt-1 pt-1 border-t border-gray-200 text-xs flex items-center justify-center text-blue-500">
+            <ExternalLink size={10} className="mr-1" />
+            Click to view details
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
+  // Handle click on chart
+  const handleChartClick = (data: any) => {
+    if (data && data.activePayload && data.activePayload.length > 0) {
+      onPointSelect(data.activePayload[0].payload.id);
+    }
+  };
+
+  // Handle point hover
+  const handlePointHover = (pointId: string | null) => {
+    setHoveredPointId(pointId);
+    if (pointId) {
+      // Make clicking the hover-active point work by selecting it
+      const handlePointClick = () => {
+        onPointSelect(pointId);
+      };
+      
+      // Listen for click events on the document while hovering
+      document.addEventListener('click', handlePointClick, { once: true });
+      
+      return () => {
+        document.removeEventListener('click', handlePointClick);
+      };
+    }
+  };
+
+  // Find color extent for the legend
+  const colorMin = useMemo(() => Math.min(...dataPoints.map(p => p.value || 0)), [dataPoints]);
+  const colorMax = useMemo(() => Math.max(...dataPoints.map(p => p.value || 0)), [dataPoints]);
+  
+  // Get the selected experiment data
+  const selectedExperiment = useMemo(() => {
+    if (!selectedPointId || !dataset[selectedPointId]) return null;
+    return dataset[selectedPointId];
+  }, [selectedPointId]);
+
+  // Sort experiments for the experiment list
+  const sortedExperiments = useMemo(() => {
+    return Object.keys(dataset).sort();
+  }, []);
 
   return (
-    <div className="scene-container w-full h-full rounded-lg overflow-hidden relative">
-      {normalizedDataPoints.length > 0 ? (
-        <Canvas
-          key={key}
-          shadows
-          dpr={[1, 2]}
-          className="rounded-lg"
-          gl={{ antialias: true, alpha: true }}
-        >
-          <PerspectiveCamera makeDefault position={[2, 2, 2]} fov={50} />
-          <Scene autoRotate={autoRotate}>
-            <Axes xLabel={xProperty} yLabel={yProperty} zLabel={zProperty} />
-            <DataPoints
-              points={normalizedDataPoints}
-              colorProperty={colorProperty}
-              selectedPointId={selectedPointId}
-              onSelect={onPointSelect}
-            />
-          </Scene>
-        </Canvas>
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-gray-100">
-          <p className="text-gray-500">No data points available to display</p>
-        </div>
-      )}
-      <div className="absolute bottom-4 right-4 bg-white/70 backdrop-blur-md p-2 rounded-md shadow-lg border border-gray-200">
-        <div className="text-xs font-semibold mb-1">{colorProperty}</div>
-        <div className="flex items-center gap-1">
-          <div className="w-full h-3 bg-gradient-to-r from-blue-500 via-green-500 to-red-500 rounded-sm" />
-        </div>
-        <div className="flex justify-between text-xs text-gray-600 mt-0.5">
-          <span>Low</span>
-          <span>High</span>
+    <div className="w-full h-full flex">
+      {/* Main visualization area */}
+      <div className="flex-grow relative">
+        <div className="scene-container w-full h-full rounded-lg overflow-hidden">
+          {/* Search panel */}
+          <div className="absolute top-4 left-4 z-10">
+            <button 
+              className="bg-white/90 p-2 rounded-full shadow-md hover:bg-white transition-all"
+              onClick={() => setSearchOpen(!searchOpen)}
+              title="Search experiments"
+            >
+              <Search size={18} className="text-gray-700" />
+            </button>
+            
+            {searchOpen && (
+              <div className="absolute top-full left-0 mt-2 bg-white/95 backdrop-blur rounded-md shadow-lg border border-gray-200 w-64 p-3">
+                <h3 className="text-sm font-medium mb-2">Find Experiment</h3>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by ID..."
+                  className="w-full p-2 border rounded text-sm mb-2"
+                />
+                
+                {searchResults.length > 0 ? (
+                  <div className="max-h-48 overflow-y-auto">
+                    <h4 className="text-xs text-gray-500 mb-1">Results ({searchResults.length})</h4>
+                    <ul className="space-y-1">
+                      {searchResults.map(result => (
+                        <li 
+                          key={result.id}
+                          className={`text-xs p-1.5 rounded cursor-pointer hover:bg-blue-50 ${result.id === selectedPointId ? 'bg-blue-100 font-medium' : ''}`}
+                          onClick={() => {
+                            onPointSelect(result.id);
+                            setSearchOpen(false);
+                          }}
+                        >
+                          {result.id}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : searchQuery !== '' ? (
+                  <p className="text-sm text-gray-500">No results found</p>
+                ) : null}
+              </div>
+            )}
+          </div>
+          
+          {/* Experiment list toggle button */}
+          <div className="absolute top-4 right-4 z-10">
+            <button 
+              className="bg-white/90 p-2 rounded-full shadow-md hover:bg-white transition-all"
+              onClick={() => setShowExperimentList(!showExperimentList)}
+              title={showExperimentList ? "Hide experiment list" : "Show experiment list"}
+            >
+              <ChevronRight size={18} className={`text-gray-700 transform transition-transform ${showExperimentList ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+          
+          {/* Main visualization */}
+          <div className="w-full h-full bg-gradient-to-b from-gray-50 to-gray-100">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart
+                margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                onClick={handleChartClick}
+              >
+                {/* Grid with custom styling */}
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                
+                {/* Axes with better styling */}
+                <XAxis 
+                  type="number" 
+                  dataKey="x" 
+                  name={xProperty} 
+                  domain={[-1.2, 1.2]}
+                  label={{ value: xProperty, position: 'bottom', style: { fill: '#666', fontSize: 12 } }}
+                  tick={{ fontSize: 10, fill: '#666' }}
+                  axisLine={{ stroke: '#999' }}
+                />
+                <YAxis 
+                  type="number" 
+                  dataKey="y" 
+                  name={yProperty} 
+                  domain={[-1.2, 1.2]}
+                  label={{ value: yProperty, angle: -90, position: 'left', style: { fill: '#666', fontSize: 12 } }}
+                  tick={{ fontSize: 10, fill: '#666' }}
+                  axisLine={{ stroke: '#999' }}
+                />
+                <ZAxis 
+                  type="number" 
+                  dataKey="size" 
+                  range={[20, 120]} 
+                  name={zProperty} 
+                />
+                
+                {/* Enhanced tooltip */}
+                <Tooltip 
+                  content={<CustomTooltip />}
+                  cursor={{ strokeDasharray: '3 3', stroke: 'rgba(0,0,0,0.3)' }}
+                />
+                
+                {/* Customized legend */}
+                <Legend 
+                  verticalAlign="top" 
+                  height={36}
+                  formatter={(value) => <span className="text-xs font-medium text-gray-700">{value}</span>}
+                />
+
+                {/* Render data points with enhanced styling */}
+                {projectedData.map((point) => (
+                  <Scatter
+                    key={`scatter-${point.id}`}
+                    name={point.id === selectedPointId ? `Selected: ${point.id}` : undefined}
+                    data={[point]}
+                    fill={point.color}
+                    strokeWidth={point.id === selectedPointId ? 2 : 0.5}
+                    stroke={point.id === selectedPointId ? '#fff' : 'rgba(0,0,0,0.3)'}
+                    fillOpacity={point.opacity}
+                    onMouseEnter={() => handlePointHover(point.id)}
+                    onMouseLeave={() => handlePointHover(null)}
+                  />
+                ))}
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Enhanced color legend overlay */}
+          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur p-3 rounded-md shadow-md border border-gray-200 text-xs">
+            <div className="flex items-center gap-1 mb-2">
+              <Layers size={14} className="text-blue-500" />
+              <span className="font-medium">{zProperty}</span>
+              <span className="text-gray-500 ml-1">(depth)</span>
+            </div>
+            
+            {colorProperty && (
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <Info size={14} className="text-blue-500" />
+                  <span className="font-medium">{colorProperty}</span>
+                </div>
+                <div className="h-2.5 w-full bg-gradient-to-r from-blue-500 via-green-500 to-red-500 rounded-sm" />
+                <div className="flex justify-between mt-1 text-gray-600">
+                  <span>{colorMin.toFixed(1)}</span>
+                  <span>{colorMax.toFixed(1)}</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      <button
-        onClick={handleResetCamera}
-        className="absolute top-4 right-4 p-2 bg-white/70 backdrop-blur-md rounded-md shadow-lg border border-gray-200 text-xs hover:bg-white/90 transition-colors"
-      >
-        Reset View
-      </button>
+
+      {/* Experiment list and details panel */}
+      {showExperimentList && (
+        <div className="w-64 bg-white border-l flex flex-col">
+          {/* Experiment list panel */}
+          <div className="p-3 border-b">
+            <h3 className="font-medium text-sm">Experiments</h3>
+            <p className="text-xs text-gray-500">
+              {dataPoints.length} experiments loaded
+            </p>
+          </div>
+
+          {/* Experiment list */}
+          <div 
+            className="overflow-y-auto flex-grow"
+            ref={experimentListRef}
+          >
+            <div className="divide-y">
+              {sortedExperiments.map(experimentId => (
+                <div
+                  key={experimentId}
+                  data-id={experimentId}
+                  className={`p-2 text-xs hover:bg-gray-50 cursor-pointer ${experimentId === selectedPointId ? 'bg-blue-50' : ''}`}
+                  onClick={() => onPointSelect(experimentId)}
+                >
+                  {experimentId}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Selected experiment details */}
+          {selectedExperiment && (
+            <div className="border-t p-3 bg-gray-50 max-h-1/2 overflow-y-auto">
+              <h3 className="font-medium text-sm mb-2">
+                {selectedPointId}
+              </h3>
+              
+              {/* Outputs section */}
+              <div className="mb-3">
+                <h4 className="text-xs font-medium text-gray-500 mb-1 uppercase">Outputs</h4>
+                <div className="bg-white rounded border p-2 text-xs">
+                  <div className="grid grid-cols-2 gap-1">
+                    {Object.entries(selectedExperiment.outputs).map(([key, value]) => (
+                      <div key={key} className="flex justify-between">
+                        <span className="text-gray-600">{key}:</span>
+                        <span className="font-medium">{typeof value === 'number' ? value.toFixed(1) : value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Inputs section */}
+              <div>
+                <h4 className="text-xs font-medium text-gray-500 mb-1 uppercase">Key Inputs</h4>
+                <div className="bg-white rounded border p-2 text-xs">
+                  <div className="grid grid-cols-1 gap-1">
+                    {Object.entries(selectedExperiment.inputs)
+                      .filter(([_, value]) => typeof value === 'number' && value > 0)
+                      .sort(([_, a], [__, b]) => (b as number) - (a as number))
+                      .map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-gray-600 truncate mr-2">{key}:</span>
+                          <span className="font-medium">{typeof value === 'number' ? value.toFixed(1) : value}</span>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
