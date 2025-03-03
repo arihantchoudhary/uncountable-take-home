@@ -1,9 +1,12 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DataPoint, Property } from '@/types/dataset';
 import { Layers, Info, ChevronRight, Search, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { dataset } from '@/utils/datasetUtils';
+import { TooltipProvider, Tooltip as UITooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 
 interface ScatterPlot3DProps {
   dataPoints: DataPoint[];
@@ -172,7 +175,6 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
       return (
         <div 
           className="bg-white/95 p-4 border border-blue-200 rounded-lg shadow-lg backdrop-blur cursor-pointer animate-fade-in"
-          onClick={() => onPointSelect(data.id)}
           style={{
             boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.3), 0 8px 10px -6px rgba(59, 130, 246, 0.2)'
           }}
@@ -195,10 +197,15 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
               </>
             )}
           </div>
-          <div className="mt-3 pt-2 border-t border-blue-100 text-sm flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full mt-3 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+            onClick={() => onPointSelect(data.id)}
+          >
             <ExternalLink size={12} className="mr-1" />
-            Click to view details
-          </div>
+            View Full Experiment
+          </Button>
         </div>
       );
     }
@@ -237,70 +244,125 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     return Object.keys(dataset).sort();
   }, []);
 
+  // Updated legendData to include all experiments
   const legendData = useMemo(() => {
-    if (dataPoints.length === 0) return [];
-    
-    const result = [];
-    const step = Math.max(1, Math.floor(dataPoints.length / 10));
-    
-    for (let i = 0; i < dataPoints.length; i += step) {
-      if (result.length < 10) {
-        result.push(dataPoints[i]);
+    return sortedExperiments.map(id => {
+      const experiment = dataset[id];
+      // Find the datapoint that corresponds to this experiment
+      const dataPoint = dataPoints.find(p => p.id === id);
+      if (!dataPoint) {
+        // Create a default datapoint if not found
+        return {
+          id,
+          x: 0,
+          y: 0,
+          z: 0,
+          value: 0,
+          experiment
+        };
       }
+      return dataPoint;
+    });
+  }, [dataPoints, sortedExperiments]);
+
+  // Group legend data into rows of 10 for better display
+  const legendRows = useMemo(() => {
+    const rows = [];
+    const itemsPerRow = 10;
+    
+    for (let i = 0; i < legendData.length; i += itemsPerRow) {
+      rows.push(legendData.slice(i, i + itemsPerRow));
     }
     
-    return result;
-  }, [dataPoints]);
+    return rows;
+  }, [legendData]);
 
   return (
     <div className="w-full h-full flex">
-      <div className="flex-grow relative">
-        <div className="scene-container w-full h-full rounded-lg overflow-hidden">
-          <div className="absolute top-4 left-4 z-10">
+      <div className="flex-grow relative flex flex-col">
+        <div className="w-full bg-white/90 backdrop-blur-sm p-3 border-b border-blue-100 shadow-sm z-20">
+          <h3 className="text-sm font-medium mb-2 text-blue-800">Experiments</h3>
+          
+          <div className="flex items-center mb-2">
             <button 
-              className="bg-white/90 p-2 rounded-full shadow-md hover:bg-white transition-all"
+              className="bg-blue-50 p-1.5 rounded text-blue-600 hover:bg-blue-100 text-xs mr-2"
               onClick={() => setSearchOpen(!searchOpen)}
-              title="Search experiments"
             >
-              <Search size={18} className="text-gray-700" />
+              <Search size={14} />
             </button>
             
             {searchOpen && (
-              <div className="absolute top-full left-0 mt-2 bg-white/95 backdrop-blur rounded-md shadow-lg border border-gray-200 w-64 p-3">
-                <h3 className="text-sm font-medium mb-2">Find Experiment</h3>
+              <div className="flex-grow">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by ID..."
-                  className="w-full p-2 border rounded text-sm mb-2"
+                  placeholder="Search experiments..."
+                  className="w-full p-1.5 border rounded text-xs"
                 />
-                
-                {searchResults.length > 0 ? (
-                  <div className="max-h-48 overflow-y-auto">
-                    <h4 className="text-xs text-gray-500 mb-1">Results ({searchResults.length})</h4>
-                    <ul className="space-y-1">
-                      {searchResults.map(result => (
-                        <li 
-                          key={result.id}
-                          className={`text-xs p-1.5 rounded cursor-pointer hover:bg-blue-50 ${result.id === selectedPointId ? 'bg-blue-100 font-medium' : ''}`}
-                          onClick={() => {
-                            onPointSelect(result.id);
-                            setSearchOpen(false);
-                          }}
-                        >
-                          {result.id}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : searchQuery !== '' ? (
-                  <p className="text-sm text-gray-500">No results found</p>
-                ) : null}
               </div>
             )}
           </div>
           
+          {searchResults.length > 0 ? (
+            <div className="max-h-40 overflow-y-auto bg-white rounded border border-blue-100 mb-2">
+              <div className="text-xs font-medium p-2 bg-blue-50/50 border-b border-blue-100">
+                Search Results ({searchResults.length})
+              </div>
+              <div className="flex flex-wrap gap-1.5 p-2">
+                {searchResults.map(result => (
+                  <TooltipProvider key={`search-${result.id}`}>
+                    <UITooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`w-6 h-6 rounded-full cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                          style={{ backgroundColor: getColorForValue(result.value || 0, colorMin, colorMax) }}
+                          onClick={() => onPointSelect(result.id)}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p className="text-xs font-medium">{result.id}</p>
+                      </TooltipContent>
+                    </UITooltip>
+                  </TooltipProvider>
+                ))}
+              </div>
+            </div>
+          ) : searchQuery !== '' ? (
+            <p className="text-xs text-gray-500 mb-2">No results found</p>
+          ) : (
+            <div className="max-h-40 overflow-y-auto">
+              {legendRows.map((row, rowIndex) => (
+                <div key={`row-${rowIndex}`} className="flex flex-wrap gap-1.5 mb-1.5">
+                  {row.map((point) => (
+                    <TooltipProvider key={`legend-${point.id}`}>
+                      <UITooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={`w-6 h-6 rounded-full cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                            style={{ backgroundColor: getColorForValue(point.value || 0, colorMin, colorMax) }}
+                            onClick={() => onPointSelect(point.id)}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p className="text-xs font-medium">{point.id}</p>
+                        </TooltipContent>
+                      </UITooltip>
+                    </TooltipProvider>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {selectedPointId && (
+            <div className="text-xs font-medium mt-1 p-1.5 bg-blue-100/70 rounded text-blue-700 text-center">
+              Selected: {selectedPointId}
+            </div>
+          )}
+        </div>
+          
+        <div className="scene-container flex-grow relative rounded-lg overflow-hidden">
           <div className="absolute top-4 right-4 z-10">
             <button 
               className="bg-white/90 p-2 rounded-full shadow-md hover:bg-white transition-all"
@@ -311,29 +373,10 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
             </button>
           </div>
           
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white/80 px-3 py-2 rounded-lg shadow-md backdrop-blur-sm">
-            <div className="flex flex-wrap gap-2 justify-center">
-              {legendData.map((point) => (
-                <div
-                  key={`legend-${point.id}`}
-                  className={`w-6 h-6 rounded-full cursor-pointer border transition-all ${point.id === selectedPointId ? 'border-white shadow-lg scale-125' : 'border-transparent'}`}
-                  style={{ backgroundColor: getColorForValue(point.value || 0, colorMin, colorMax) }}
-                  onClick={() => onPointSelect(point.id)}
-                  title={point.id}
-                />
-              ))}
-            </div>
-            {selectedPointId && (
-              <div className="text-xs text-center mt-1 font-medium text-blue-700">
-                Selected: {selectedPointId}
-              </div>
-            )}
-          </div>
-          
           <div className="w-full h-full bg-gradient-to-b from-[#f8faff] to-[#eef4ff] animate-fade-in">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart
-                margin={{ top: 50, right: 20, bottom: 20, left: 20 }}
+                margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 onClick={handleChartClick}
               >
                 <CartesianGrid 
@@ -421,7 +464,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
       {showExperimentList && (
         <div className="w-64 bg-white/90 backdrop-blur-sm border-l border-blue-100 flex flex-col shadow-lg animate-fade-in">
           <div className="p-3 border-b">
-            <h3 className="font-medium text-sm">Experiments</h3>
+            <h3 className="font-medium text-sm">Experiment List</h3>
             <p className="text-xs text-gray-500">
               {dataPoints.length} experiments loaded
             </p>
