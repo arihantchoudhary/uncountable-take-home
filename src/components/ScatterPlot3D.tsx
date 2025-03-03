@@ -1,12 +1,8 @@
 
-import React, { useRef, useState, useEffect } from 'react';
+// ScatterPlot3D.jsx
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { 
-  OrbitControls, 
-  Text,
-  Html,
-  PerspectiveCamera
-} from '@react-three/drei';
+import { OrbitControls, Text, Html, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { DataPoint, Property } from '@/types/dataset';
 
@@ -23,30 +19,23 @@ interface ScatterPlot3DProps {
 
 // Helper to map a value to a color
 const mapValueToColor = (value: number, min: number, max: number): string => {
-  // Normalize value between 0 and 1
   const normalized = min === max ? 0.5 : (value - min) / (max - min);
-  
-  // Color palette from blue to cyan to green to yellow to red
   if (normalized < 0.25) {
-    // Blue to cyan
     const r = 0;
     const g = Math.round(255 * (normalized * 4));
     const b = 255;
     return `rgb(${r}, ${g}, ${b})`;
   } else if (normalized < 0.5) {
-    // Cyan to green
     const r = 0;
     const g = 255;
     const b = Math.round(255 * (1 - (normalized - 0.25) * 4));
     return `rgb(${r}, ${g}, ${b})`;
   } else if (normalized < 0.75) {
-    // Green to yellow
     const r = Math.round(255 * ((normalized - 0.5) * 4));
     const g = 255;
     const b = 0;
     return `rgb(${r}, ${g}, ${b})`;
   } else {
-    // Yellow to red
     const r = 255;
     const g = Math.round(255 * (1 - (normalized - 0.75) * 4));
     const b = 0;
@@ -54,21 +43,18 @@ const mapValueToColor = (value: number, min: number, max: number): string => {
   }
 };
 
-// Fixed AxisLine component
+// Updated AxisLine component using memoized geometry
 const AxisLine = ({ start, end, color }: { start: [number, number, number], end: [number, number, number], color: string }) => {
-  // Create a Float32Array containing the two points
-  const pointsArray = new Float32Array([...start, ...end]);
+  const geometry = useMemo(() => {
+    const geom = new THREE.BufferGeometry();
+    const vertices = new Float32Array([...start, ...end]);
+    geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    return geom;
+  }, [start, end]);
+
   return (
-    <line>
-      <bufferGeometry>
-        <bufferAttribute 
-          attach="attributes.position" 
-          array={pointsArray} 
-          count={2} 
-          itemSize={3} 
-        />
-      </bufferGeometry>
-      <lineBasicMaterial color={color} />
+    <line geometry={geometry}>
+      <lineBasicMaterial attach="material" color={color} />
     </line>
   );
 };
@@ -81,19 +67,17 @@ const DataPoints = ({ points, colorProperty, selectedPointId, onSelect }: {
   onSelect: (id: string) => void;
 }) => {
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
-  
-  // Get min and max values for color mapping
   const allValues = points.map(p => p.value);
   const minValue = Math.min(...allValues);
   const maxValue = Math.max(...allValues);
-  
+
   return (
     <group>
       {points.map((point) => {
         const isSelected = selectedPointId === point.id;
         const isHovered = hoveredPointId === point.id;
         const color = mapValueToColor(point.value, minValue, maxValue);
-        
+
         return (
           <mesh
             key={point.id}
@@ -110,13 +94,8 @@ const DataPoints = ({ points, colorProperty, selectedPointId, onSelect }: {
               roughness={0.3}
               metalness={0.8}
             />
-            
             {(isSelected || isHovered) && (
-              <Html
-                position={[0, 0.07, 0]}
-                center
-                className="pointer-events-none"
-              >
+              <Html position={[0, 0.07, 0]} center className="pointer-events-none">
                 <div className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md text-xs shadow-md border border-gray-200 whitespace-nowrap">
                   <div className="font-semibold text-center mb-1">{point.id}</div>
                   <div className="text-muted-foreground flex justify-between gap-2">
@@ -137,37 +116,16 @@ const DataPoints = ({ points, colorProperty, selectedPointId, onSelect }: {
 const Axes = ({ xLabel, yLabel, zLabel }: { xLabel: string; yLabel: string; zLabel: string }) => {
   return (
     <group>
-      {/* X-axis */}
       <AxisLine start={[-1.2, 0, 0]} end={[1.2, 0, 0]} color="hsl(0, 0%, 30%)" />
-      <Text
-        position={[1.3, 0, 0]}
-        fontSize={0.1}
-        color="hsl(0, 0%, 50%)"
-        anchorX="left"
-      >
+      <Text position={[1.3, 0, 0]} fontSize={0.1} color="hsl(0, 0%, 50%)" anchorX="left">
         {xLabel}
       </Text>
-
-      {/* Y-axis */}
       <AxisLine start={[0, -1.2, 0]} end={[0, 1.2, 0]} color="hsl(0, 0%, 30%)" />
-      <Text
-        position={[0, 1.3, 0]}
-        fontSize={0.1}
-        color="hsl(0, 0%, 50%)"
-        anchorX="center"
-        anchorY="bottom"
-      >
+      <Text position={[0, 1.3, 0]} fontSize={0.1} color="hsl(0, 0%, 50%)" anchorX="center" anchorY="bottom">
         {yLabel}
       </Text>
-
-      {/* Z-axis */}
       <AxisLine start={[0, 0, -1.2]} end={[0, 0, 1.2]} color="hsl(0, 0%, 30%)" />
-      <Text
-        position={[0, 0, 1.3]}
-        fontSize={0.1}
-        color="hsl(0, 0%, 50%)"
-        anchorX="center"
-      >
+      <Text position={[0, 0, 1.3]} fontSize={0.1} color="hsl(0, 0%, 50%)" anchorX="center">
         {zLabel}
       </Text>
     </group>
@@ -175,13 +133,10 @@ const Axes = ({ xLabel, yLabel, zLabel }: { xLabel: string; yLabel: string; zLab
 };
 
 // Scene setup with grid and controls
-const Scene = ({ children, autoRotate }: {
-  children: React.ReactNode;
-  autoRotate: boolean;
-}) => {
+const Scene = ({ children, autoRotate }: { children: React.ReactNode; autoRotate: boolean; }) => {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
-  
+
   const resetCamera = () => {
     camera.position.set(2, 2, 2);
     camera.lookAt(0, 0, 0);
@@ -190,11 +145,8 @@ const Scene = ({ children, autoRotate }: {
     }
   };
 
-  // Reset camera position on mount
-  useEffect(() => {
-    resetCamera();
-  }, []);
-  
+  useEffect(() => { resetCamera(); }, []);
+
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -225,35 +177,29 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   onPointSelect,
   selectedPointId,
 }) => {
-  const [key, setKey] = useState(0); // Add a key to force remount when needed
-
-  const handleResetCamera = () => {
-    // Force a remount of the Canvas component
-    setKey(prev => prev + 1);
-  };
+  const [key, setKey] = useState(0);
+  const handleResetCamera = () => setKey(prev => prev + 1);
 
   return (
     <div className="scene-container w-full h-full rounded-lg overflow-hidden">
-      <Canvas 
+      <Canvas
         key={key}
-        shadows 
-        dpr={[1, 2]} 
+        shadows
+        dpr={[1, 2]}
         className="rounded-lg"
         gl={{ antialias: true, alpha: true }}
       >
         <PerspectiveCamera makeDefault position={[2, 2, 2]} fov={50} />
         <Scene autoRotate={autoRotate}>
           <Axes xLabel={xProperty} yLabel={yProperty} zLabel={zProperty} />
-          <DataPoints 
-            points={dataPoints} 
+          <DataPoints
+            points={dataPoints}
             colorProperty={colorProperty}
             selectedPointId={selectedPointId}
             onSelect={onPointSelect}
           />
         </Scene>
       </Canvas>
-      
-      {/* Color legend */}
       <div className="absolute bottom-4 right-4 bg-white/70 backdrop-blur-md p-2 rounded-md shadow-lg border border-gray-200">
         <div className="text-xs font-semibold mb-1">{colorProperty}</div>
         <div className="flex items-center gap-1">
@@ -264,9 +210,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           <span>High</span>
         </div>
       </div>
-      
-      {/* Reset camera button */}
-      <button 
+      <button
         onClick={handleResetCamera}
         className="absolute top-4 right-4 p-2 bg-white/70 backdrop-blur-md rounded-md shadow-lg border border-gray-200 text-xs hover:bg-white/90 transition-colors"
       >
