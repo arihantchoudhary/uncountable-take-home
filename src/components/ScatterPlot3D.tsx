@@ -87,7 +87,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   }, [selectedPointId]);
 
   const formatExperimentId = (id: string) => {
-    return id.replace('20170', '');
+    return id.replace('20170', '').replace('_EXP_', '_');
   };
 
   const scaleLinear = (value: number, domainMin: number, domainMax: number, rangeMin: number, rangeMax: number) => {
@@ -98,9 +98,9 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   const getColorForValue = (value: number, min: number, max: number) => {
     const normalized = scaleLinear(value, min, max, 0, 1);
     
-    const r = Math.round(255 - normalized * 241);
-    const g = Math.round(255 - normalized * 160);
-    const b = Math.round(255 - normalized * 22);
+    const r = Math.round(255 - normalized * 200);
+    const g = Math.round(255 - normalized * 200);
+    const b = 255;
     
     return `rgb(${r}, ${g}, ${b})`;
   };
@@ -308,7 +308,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                     <UITooltip>
                       <TooltipTrigger asChild>
                         <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
                           style={{ backgroundColor: getColorForValue(result.value || 0, colorMin, colorMax) }}
                           onClick={() => onPointSelect(result.id)}
                         >
@@ -333,7 +333,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                     <UITooltip>
                       <TooltipTrigger asChild>
                         <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
                           style={{ backgroundColor: getColorForValue(point.value || 0, colorMin, colorMax) }}
                           onClick={() => onPointSelect(point.id)}
                         >
@@ -433,30 +433,35 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           </div>
 
           <div className="w-full bg-white/90 backdrop-blur-md p-4 border-t border-purple-100 shadow-sm">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-1.5">
-                <Layers size={14} className="text-blue-600" />
-                <span className="font-medium text-blue-800 text-xs">{zProperty}</span>
-                <span className="text-slate-500 text-xs ml-1">(depth)</span>
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1.5">
+                  <Layers size={14} className="text-blue-600" />
+                  <span className="font-medium text-blue-800 text-xs">{zProperty}</span>
+                  <span className="text-slate-500 text-xs ml-1">(depth)</span>
+                </div>
               </div>
               
               {colorProperty && (
-                <div className="flex-grow ml-6">
-                  <div className="flex items-center gap-1.5 mb-1">
+                <div className="flex items-center space-x-2 w-full">
+                  <div className="flex items-center gap-1">
                     <Info size={14} className="text-blue-600" />
                     <span className="font-medium text-blue-800 text-xs">{colorProperty}</span>
                   </div>
-                  <div className="h-3 w-full bg-gradient-to-r from-white via-[#D3E4FD] to-[#0EA5E9] rounded-full" />
-                  <div className="flex justify-between mt-1 text-slate-600 text-xs">
-                    <span>{formatNumber(colorMin)}</span>
-                    <span>{formatNumber(colorMax)}</span>
+                  
+                  <div className="flex-grow">
+                    <div className="h-3 w-full bg-gradient-to-r from-white to-blue-500 rounded-full" />
+                    <div className="flex justify-between mt-1 text-slate-600 text-xs">
+                      <span>{formatNumber(colorMin)}</span>
+                      <span>{formatNumber(colorMax)}</span>
+                    </div>
                   </div>
                 </div>
               )}
-
-              <div className="ml-6 text-xs text-slate-600">
+              
+              <div className="text-xs text-slate-600">
                 <div className="font-medium mb-1 text-blue-800">Tips:</div>
-                <ul className="list-disc pl-4 space-y-1">
+                <ul className="list-disc pl-4">
                   <li>You can change the axes in the control panel</li>
                   <li>You can toggle auto-rotate for 3D effect</li>
                 </ul>
