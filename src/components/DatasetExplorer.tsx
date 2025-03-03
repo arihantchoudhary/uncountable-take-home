@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import ScatterPlot3D from './ScatterPlot3D';
 import ControlPanel from './ControlPanel';
 import ExperimentCard from './ExperimentCard';
@@ -18,6 +19,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Activity } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const DatasetExplorer: React.FC = () => {
   // State for selected properties
@@ -34,6 +36,7 @@ const DatasetExplorer: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [autoRotate, setAutoRotate] = useState(true);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
   
   // State for filters
   const [filteredExperiments, setFilteredExperiments] = useState<string[]>(Object.keys(dataset));
@@ -43,33 +46,59 @@ const DatasetExplorer: React.FC = () => {
     max: number;
   }[]>([]);
   
+  const { toast } = useToast();
+  const hasLoadedRef = useRef(false);
+  
   // Load property statistics once
   useEffect(() => {
-    const stats = calculatePropertyStats();
-    setPropertyStats(stats);
-    setIsLoading(false);
-  }, []);
+    if (hasLoadedRef.current) return;
+    
+    try {
+      const stats = calculatePropertyStats();
+      setPropertyStats(stats);
+      setIsLoading(false);
+      hasLoadedRef.current = true;
+    } catch (error) {
+      console.error('Failed to load property statistics:', error);
+      setHasError(true);
+      setIsLoading(false);
+      toast({
+        title: "Error loading data",
+        description: "There was a problem loading the dataset. Please try refreshing the page.",
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
   
   // Update data points when properties or filters change
   useEffect(() => {
     if (Object.keys(propertyStats).length === 0) return;
     
-    // Create data points for all experiments
-    const allPoints = createDataPoints(
-      xProperty,
-      yProperty,
-      zProperty,
-      colorProperty,
-      propertyStats
-    );
-    
-    // Filter the data points
-    const filteredPoints = allPoints.filter(point => 
-      filteredExperiments.includes(point.id)
-    );
-    
-    setDataPoints(filteredPoints);
-  }, [xProperty, yProperty, zProperty, colorProperty, propertyStats, filteredExperiments]);
+    try {
+      // Create data points for all experiments
+      const allPoints = createDataPoints(
+        xProperty,
+        yProperty,
+        zProperty,
+        colorProperty,
+        propertyStats
+      );
+      
+      // Filter the data points
+      const filteredPoints = allPoints.filter(point => 
+        filteredExperiments.includes(point.id)
+      );
+      
+      setDataPoints(filteredPoints);
+    } catch (error) {
+      console.error('Failed to update data points:', error);
+      toast({
+        title: "Error updating visualization",
+        description: "There was a problem updating the visualization. Some data may not display correctly.",
+        variant: "destructive"
+      });
+    }
+  }, [xProperty, yProperty, zProperty, colorProperty, propertyStats, filteredExperiments, toast]);
   
   // Handle property changes
   const handlePropertiesChange = (
@@ -174,18 +203,42 @@ const DatasetExplorer: React.FC = () => {
             <Card className="w-full h-full flex items-center justify-center">
               <div className="loading-spinner" />
             </Card>
+          ) : hasError ? (
+            <Card className="w-full h-full flex flex-col items-center justify-center p-4 text-center gap-4">
+              <Activity className="h-12 w-12 text-muted-foreground animate-pulse" />
+              <div>
+                <h3 className="text-lg font-medium">Visualization Error</h3>
+                <p className="text-muted-foreground">
+                  There was a problem loading the 3D visualization.
+                </p>
+              </div>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Reload Page
+              </button>
+            </Card>
           ) : (
             <Card className="w-full h-full overflow-hidden border-none shadow-lg">
-              <ScatterPlot3D
-                dataPoints={dataPoints}
-                xProperty={xProperty}
-                yProperty={yProperty}
-                zProperty={zProperty}
-                colorProperty={colorProperty}
-                autoRotate={autoRotate}
-                onPointSelect={handlePointSelect}
-                selectedPointId={selectedPointId}
-              />
+              <Suspense fallback={
+                <div className="w-full h-full flex items-center justify-center">
+                  <Skeleton className="w-full h-full" />
+                </div>
+              }>
+                <ErrorBoundary>
+                  <ScatterPlot3D
+                    dataPoints={dataPoints}
+                    xProperty={xProperty}
+                    yProperty={yProperty}
+                    zProperty={zProperty}
+                    colorProperty={colorProperty}
+                    autoRotate={autoRotate}
+                    onPointSelect={handlePointSelect}
+                    selectedPointId={selectedPointId}
+                  />
+                </ErrorBoundary>
+              </Suspense>
             </Card>
           )}
         </div>
@@ -221,5 +274,42 @@ const DatasetExplorer: React.FC = () => {
     </div>
   );
 };
+
+// Simple error boundary component to catch Three.js rendering errors
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("3D Visualization error:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center gap-4">
+          <h3 className="text-lg font-medium">Visualization Error</h3>
+          <p className="text-muted-foreground">
+            There was a problem rendering the 3D visualization.
+          </p>
+          <button 
+            onClick={() => this.setState({ hasError: false })} 
+            className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default DatasetExplorer;
