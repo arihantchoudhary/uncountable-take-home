@@ -201,7 +201,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 <Toggle 
                   pressed={isAutoRotating} 
                   onPressedChange={onAutoRotateToggle}
-                  className="data-[state=on]:bg-primary"
+                  className={`data-[state=on]:bg-primary data-[state=on]:text-white`}
                 >
                   <RotateCw className="h-4 w-4 mr-2" />
                   Auto-rotate
