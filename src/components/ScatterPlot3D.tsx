@@ -133,7 +133,7 @@ const Axes: React.FC<{
             ),
           }}
         />
-        <lineBasicMaterial attach="material" color="hsl(0, 0%, 30%)" linewidth={2} />
+        <lineBasicMaterial attach="material" color="hsl(0, 0%, 30%)" />
       </line>
       <Text
         position={[1.3, 0, 0]}
@@ -155,7 +155,7 @@ const Axes: React.FC<{
             ),
           }}
         />
-        <lineBasicMaterial attach="material" color="hsl(0, 0%, 30%)" linewidth={2} />
+        <lineBasicMaterial attach="material" color="hsl(0, 0%, 30%)" />
       </line>
       <Text
         position={[0, 1.3, 0]}
@@ -178,7 +178,7 @@ const Axes: React.FC<{
             ),
           }}
         />
-        <lineBasicMaterial attach="material" color="hsl(0, 0%, 30%)" linewidth={2} />
+        <lineBasicMaterial attach="material" color="hsl(0, 0%, 30%)" />
       </line>
       <Text
         position={[0, 0, 1.3]}
@@ -196,7 +196,7 @@ const Axes: React.FC<{
 const Scene: React.FC<{
   children: React.ReactNode;
   autoRotate: boolean;
-  onResetCamera?: React.MutableRefObject<(() => void) | null>;
+  onResetCamera: React.MutableRefObject<(() => void) | null>;
 }> = ({ children, autoRotate, onResetCamera }) => {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
@@ -280,6 +280,14 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           <span>High</span>
         </div>
       </div>
+      
+      {/* Reset camera button */}
+      <button 
+        onClick={handleResetCamera}
+        className="absolute top-4 right-4 p-2 bg-white/70 backdrop-blur-md rounded-md shadow-lg border border-gray-200 text-xs hover:bg-white/90 transition-colors"
+      >
+        Reset View
+      </button>
     </div>
   );
 };
