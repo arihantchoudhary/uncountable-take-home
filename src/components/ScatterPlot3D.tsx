@@ -277,15 +277,21 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     return rows;
   }, [legendData]);
 
+  // Function to extract experiment number from ID
+  const getExperimentNumber = (id: string) => {
+    const match = id.match(/\d+/);
+    return match ? match[0] : "";
+  };
+
   return (
     <div className="w-full h-full flex">
       <div className="flex-grow relative flex flex-col">
-        <div className="w-full bg-white/90 backdrop-blur-sm p-3 border-b border-blue-100 shadow-sm z-20">
-          <h3 className="text-sm font-medium mb-2 text-blue-800">Experiments</h3>
+        <div className="w-full bg-gradient-to-r from-[#9b87f5] to-[#7E69AB] p-3 border-b border-[#E5DEFF] shadow-sm z-20">
+          <h3 className="text-sm font-medium mb-2 text-white">Experiments</h3>
           
           <div className="flex items-center mb-2">
             <button 
-              className="bg-blue-50 p-1.5 rounded text-blue-600 hover:bg-blue-100 text-xs mr-2"
+              className="bg-white/20 p-1.5 rounded text-white hover:bg-white/30 text-xs mr-2"
               onClick={() => setSearchOpen(!searchOpen)}
             >
               <Search size={14} />
@@ -305,8 +311,8 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           </div>
           
           {searchResults.length > 0 ? (
-            <div className="max-h-40 overflow-y-auto bg-white rounded border border-blue-100 mb-2">
-              <div className="text-xs font-medium p-2 bg-blue-50/50 border-b border-blue-100">
+            <div className="max-h-40 overflow-y-auto bg-white rounded border border-[#D6BCFA] mb-2">
+              <div className="text-xs font-medium p-2 bg-[#E5DEFF]/50 border-b border-[#D6BCFA]">
                 Search Results ({searchResults.length})
               </div>
               <div className="flex flex-wrap gap-1.5 p-2">
@@ -315,10 +321,12 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                     <UITooltip>
                       <TooltipTrigger asChild>
                         <div
-                          className={`w-6 h-6 rounded-full cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                          className={`w-6 h-6 flex items-center justify-center rounded-full cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-[#7E69AB] shadow-lg scale-110' : 'border-transparent'}`}
                           style={{ backgroundColor: getColorForValue(result.value || 0, colorMin, colorMax) }}
                           onClick={() => onPointSelect(result.id)}
-                        />
+                        >
+                          <span className="text-[8px] font-bold text-[#1A1F2C]">{getExperimentNumber(result.id)}</span>
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom">
                         <p className="text-xs font-medium">{result.id}</p>
@@ -329,7 +337,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
               </div>
             </div>
           ) : searchQuery !== '' ? (
-            <p className="text-xs text-gray-500 mb-2">No results found</p>
+            <p className="text-xs text-white/70 mb-2">No results found</p>
           ) : (
             <div className="max-h-40 overflow-y-auto">
               {legendRows.map((row, rowIndex) => (
@@ -339,10 +347,12 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                       <UITooltip>
                         <TooltipTrigger asChild>
                           <div
-                            className={`w-6 h-6 rounded-full cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                            className={`w-6 h-6 flex items-center justify-center rounded-full cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-[#7E69AB] shadow-lg scale-110' : 'border-transparent'}`}
                             style={{ backgroundColor: getColorForValue(point.value || 0, colorMin, colorMax) }}
                             onClick={() => onPointSelect(point.id)}
-                          />
+                          >
+                            <span className="text-[8px] font-bold text-[#1A1F2C]">{getExperimentNumber(point.id)}</span>
+                          </div>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
                           <p className="text-xs font-medium">{point.id}</p>
@@ -356,7 +366,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           )}
           
           {selectedPointId && (
-            <div className="text-xs font-medium mt-1 p-1.5 bg-blue-100/70 rounded text-blue-700 text-center">
+            <div className="text-xs font-medium mt-1 p-1.5 bg-white/20 rounded text-white text-center">
               Selected: {selectedPointId}
             </div>
           )}
