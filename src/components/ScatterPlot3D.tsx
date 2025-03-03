@@ -85,8 +85,8 @@ const DataPoints: React.FC<{
           >
             <sphereGeometry args={[isSelected ? 0.05 : isHovered ? 0.04 : 0.025]} />
             <meshStandardMaterial 
-              color={color} 
-              emissive={isSelected || isHovered ? color : undefined}
+              color={color}
+              emissive={isSelected || isHovered ? color : "#000000"}
               emissiveIntensity={isSelected ? 0.6 : isHovered ? 0.3 : 0}
               roughness={0.3}
               metalness={0.8}
@@ -123,18 +123,17 @@ const Axes: React.FC<{
   return (
     <group>
       {/* X-axis */}
-      <line>
-        <bufferGeometry
-          attach="geometry"
-          attributes={{
-            position: new THREE.BufferAttribute(
-              new Float32Array([-1.2, 0, 0, 1.2, 0, 0]),
-              3
-            ),
-          }}
-        />
-        <lineBasicMaterial attach="material" color="hsl(0, 0%, 30%)" />
-      </line>
+      <mesh>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            array={new Float32Array([-1.2, 0, 0, 1.2, 0, 0])}
+            count={2}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color="hsl(0, 0%, 30%)" />
+      </mesh>
       <Text
         position={[1.3, 0, 0]}
         fontSize={0.1}
@@ -145,18 +144,17 @@ const Axes: React.FC<{
       </Text>
 
       {/* Y-axis */}
-      <line>
-        <bufferGeometry
-          attach="geometry"
-          attributes={{
-            position: new THREE.BufferAttribute(
-              new Float32Array([0, -1.2, 0, 0, 1.2, 0]),
-              3
-            ),
-          }}
-        />
-        <lineBasicMaterial attach="material" color="hsl(0, 0%, 30%)" />
-      </line>
+      <mesh>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            array={new Float32Array([0, -1.2, 0, 0, 1.2, 0])}
+            count={2}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color="hsl(0, 0%, 30%)" />
+      </mesh>
       <Text
         position={[0, 1.3, 0]}
         fontSize={0.1}
@@ -168,18 +166,17 @@ const Axes: React.FC<{
       </Text>
 
       {/* Z-axis */}
-      <line>
-        <bufferGeometry
-          attach="geometry"
-          attributes={{
-            position: new THREE.BufferAttribute(
-              new Float32Array([0, 0, -1.2, 0, 0, 1.2]),
-              3
-            ),
-          }}
-        />
-        <lineBasicMaterial attach="material" color="hsl(0, 0%, 30%)" />
-      </line>
+      <mesh>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            array={new Float32Array([0, 0, -1.2, 0, 0, 1.2])}
+            count={2}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color="hsl(0, 0%, 30%)" />
+      </mesh>
       <Text
         position={[0, 0, 1.3]}
         fontSize={0.1}
