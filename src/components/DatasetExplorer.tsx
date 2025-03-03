@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import ScatterPlot3D from './ScatterPlot3D';
 import ControlPanel from './ControlPanel';
@@ -158,15 +157,10 @@ const DatasetExplorer: React.FC = () => {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <header className="header-gradient text-white shadow-md mb-6">
+      <header className="bg-primary text-white shadow-md mb-6">
         <div className="container mx-auto py-4 px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <img 
-                src="/uncountable-logo.png" 
-                alt="Uncountable Logo" 
-                className="h-10 mr-3"
-              />
               <h1 className="text-2xl font-bold tracking-tight text-white">
                 Uncountable Dataset Visualization
               </h1>
