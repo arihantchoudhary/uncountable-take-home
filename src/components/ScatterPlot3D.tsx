@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DataPoint, Property } from '@/types/dataset';
-import { Layers, Info, ChevronRight, Search, ExternalLink } from 'lucide-react';
+import { Layers, Info, ChevronRight, Search, ExternalLink, Rotate3d, ArrowsMove } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { dataset } from '@/utils/datasetUtils';
 import { TooltipProvider, Tooltip as UITooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -87,15 +86,14 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     }
   }, [selectedPointId]);
 
-  // Function to format experiment ID for display in circles
   const formatExperimentId = (id: string) => {
-    // If format is like 20170102_EXP_56, extract 102_56
     const match = id.match(/\d{4}(\d{2})(\d{2})_EXP_(\d+)/);
     if (match) {
-      return `${match[1]}${match[2]}_${match[3]}`;
+      const month = match[1].startsWith('0') ? match[1].substring(1) : match[1];
+      const day = match[2].startsWith('0') ? match[2].substring(1) : match[2];
+      return `${month}${day}_${match[3]}`;
     }
     
-    // If another format, try to extract something meaningful or return the original
     return id.length > 6 ? id.substring(id.length - 6) : id;
   };
 
@@ -107,22 +105,22 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   const getColorForValue = (value: number, min: number, max: number) => {
     const normalized = scaleLinear(value, min, max, 0, 1);
     
-    let r, g, b;
     if (normalized < 0.33) {
-      r = Math.round(20 + normalized * 3 * 60);
-      g = Math.round(80 + normalized * 3 * 175);
-      b = Math.round(180 + normalized * 3 * 75);
+      const r = Math.round(80 + normalized * 3 * 70);
+      const g = Math.round(40 + normalized * 3 * 80);
+      const b = Math.round(180 + normalized * 3 * 60);
+      return `rgb(${r}, ${g}, ${b})`;
     } else if (normalized < 0.66) {
-      r = Math.round(80 + (normalized - 0.33) * 3 * 175);
-      g = Math.round(180);
-      b = Math.round(180 - (normalized - 0.33) * 3 * 180);
+      const r = Math.round(20 + (normalized - 0.33) * 3 * 60);
+      const g = Math.round(160 + (normalized - 0.33) * 3 * 30);
+      const b = Math.round(140 - (normalized - 0.33) * 3 * 40);
+      return `rgb(${r}, ${g}, ${b})`;
     } else {
-      r = 220;
-      g = Math.round(180 - (normalized - 0.66) * 3 * 160);
-      b = Math.round(30 - (normalized - 0.66) * 3 * 30);
+      const r = Math.round(220 + (normalized - 0.66) * 3 * 35);
+      const g = Math.round(150 - (normalized - 0.66) * 3 * 30);
+      const b = Math.round(60 - (normalized - 0.66) * 3 * 30);
+      return `rgb(${r}, ${g}, ${b})`;
     }
-    
-    return `rgb(${r}, ${g}, ${b})`;
   };
 
   const projectedData = useMemo(() => {
@@ -181,18 +179,20 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
       
       const formatValue = (value: number) => {
         if (value === undefined || value === null) return '';
-        return value.toFixed(6).replace(/\.?0+$/, '').replace(/\.$/, '');
+        return value.toFixed(4).replace(/\.?0+$/, '').replace(/\.$/, '');
       };
       
       return (
         <div 
-          className="bg-white/95 p-4 border border-blue-200 rounded-lg shadow-lg backdrop-blur cursor-pointer animate-fade-in"
+          className="bg-white/95 p-2.5 border border-blue-200 rounded-md shadow-md backdrop-blur cursor-pointer animate-fade-in"
           style={{
-            boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.3), 0 8px 10px -6px rgba(59, 130, 246, 0.2)'
+            boxShadow: '0 8px 20px -4px rgba(113, 90, 235, 0.25), 0 6px 8px -4px rgba(113, 90, 235, 0.15)',
+            maxWidth: '200px',
+            fontSize: '12px'
           }}
         >
-          <p className="font-bold text-base mb-2 text-blue-800">{data.id}</p>
-          <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm">
+          <p className="font-bold mb-1.5 text-blue-800">{data.id}</p>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
             <span className="text-slate-500">{xProperty}:</span>
             <span className="font-medium text-right text-slate-700">{formatValue(data.x)}</span>
             
@@ -212,13 +212,13 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="w-full mt-3 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+            className="w-full mt-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-1 h-auto text-xs"
             onClick={(e) => {
-              e.stopPropagation(); // Prevent chart click event
+              e.stopPropagation();
               onPointSelect(data.id);
             }}
           >
-            <ExternalLink size={12} className="mr-1" />
+            <ExternalLink size={10} className="mr-1" />
             View Full Experiment
           </Button>
         </div>
@@ -259,14 +259,11 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     return Object.keys(dataset).sort();
   }, []);
 
-  // Updated legendData to include all experiments
   const legendData = useMemo(() => {
     return sortedExperiments.map(id => {
       const experiment = dataset[id];
-      // Find the datapoint that corresponds to this experiment
       const dataPoint = dataPoints.find(p => p.id === id);
       if (!dataPoint) {
-        // Create a default datapoint if not found
         return {
           id,
           x: 0,
@@ -280,7 +277,6 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     });
   }, [dataPoints, sortedExperiments]);
 
-  // Group legend data into rows of 10 for better display
   const legendRows = useMemo(() => {
     const rows = [];
     const itemsPerRow = 10;
@@ -324,13 +320,13 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
               <div className="text-xs font-medium p-2 bg-blue-50/50 border-b border-blue-100">
                 Search Results ({searchResults.length})
               </div>
-              <div className="flex flex-wrap gap-1.5 p-2">
+              <div className="flex flex-wrap justify-center gap-2.5 p-3">
                 {searchResults.map(result => (
                   <TooltipProvider key={`search-${result.id}`}>
                     <UITooltip>
                       <TooltipTrigger asChild>
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
                           style={{ backgroundColor: getColorForValue(result.value || 0, colorMin, colorMax) }}
                           onClick={() => onPointSelect(result.id)}
                         >
@@ -350,13 +346,13 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           ) : (
             <div className="max-h-40 overflow-y-auto">
               {legendRows.map((row, rowIndex) => (
-                <div key={`row-${rowIndex}`} className="flex flex-wrap gap-1.5 mb-1.5">
+                <div key={`row-${rowIndex}`} className="flex flex-wrap justify-center gap-2.5 mb-2 px-1">
                   {row.map((point) => (
                     <TooltipProvider key={`legend-${point.id}`}>
                       <UITooltip>
                         <TooltipTrigger asChild>
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-[9px] cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                            className={`w-9 h-9 rounded-full flex items-center justify-center text-[9px] cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
                             style={{ backgroundColor: getColorForValue(point.value || 0, colorMin, colorMax) }}
                             onClick={() => onPointSelect(point.id)}
                           >
@@ -400,7 +396,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
               >
                 <CartesianGrid 
                   strokeDasharray="3 3" 
-                  stroke="rgba(59, 130, 246, 0.1)" 
+                  stroke="rgba(113, 90, 235, 0.1)" 
                   vertical={true} 
                   horizontal={true} 
                 />
@@ -410,7 +406,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                   dataKey="x" 
                   name={xProperty} 
                   domain={[-1.2, 1.2]}
-                  label={{ value: xProperty, position: 'bottom', style: { fill: '#3b82f6', fontSize: 12, fontWeight: 500 } }}
+                  label={{ value: xProperty, position: 'bottom', style: { fill: '#6366f1', fontSize: 12, fontWeight: 500 } }}
                   tick={{ fontSize: 10, fill: '#64748b' }}
                   axisLine={{ stroke: '#cbd5e1' }}
                   tickFormatter={formatNumber}
@@ -420,7 +416,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                   dataKey="y" 
                   name={yProperty} 
                   domain={[-1.2, 1.2]}
-                  label={{ value: yProperty, angle: -90, position: 'left', style: { fill: '#3b82f6', fontSize: 12, fontWeight: 500 } }}
+                  label={{ value: yProperty, angle: -90, position: 'left', style: { fill: '#6366f1', fontSize: 12, fontWeight: 500 } }}
                   tick={{ fontSize: 10, fill: '#64748b' }}
                   axisLine={{ stroke: '#cbd5e1' }}
                   tickFormatter={formatNumber}
@@ -434,7 +430,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                 
                 <Tooltip 
                   content={<CustomTooltip />}
-                  cursor={{ strokeDasharray: '3 3', stroke: 'rgba(59, 130, 246, 0.4)' }}
+                  cursor={{ strokeDasharray: '3 3', stroke: 'rgba(113, 90, 235, 0.4)' }}
                 />
                 
                 {projectedData.map((point) => (
@@ -456,20 +452,20 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
             </ResponsiveContainer>
           </div>
 
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md p-4 rounded-lg shadow-lg border border-blue-100 text-xs">
+          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md p-4 rounded-lg shadow-lg border border-purple-100 text-xs">
             <div className="flex items-center gap-1.5 mb-3">
-              <Layers size={14} className="text-blue-600" />
-              <span className="font-medium text-blue-800">{zProperty}</span>
+              <Layers size={14} className="text-purple-600" />
+              <span className="font-medium text-purple-800">{zProperty}</span>
               <span className="text-slate-500 ml-1">(depth)</span>
             </div>
             
             {colorProperty && (
               <div>
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Info size={14} className="text-blue-600" />
-                  <span className="font-medium text-blue-800">{colorProperty}</span>
+                  <Info size={14} className="text-purple-600" />
+                  <span className="font-medium text-purple-800">{colorProperty}</span>
                 </div>
-                <div className="h-3 w-full bg-gradient-to-r from-blue-600 via-green-500 to-amber-500 rounded-full" />
+                <div className="h-3 w-full bg-gradient-to-r from-indigo-600 via-teal-500 to-amber-500 rounded-full" />
                 <div className="flex justify-between mt-2 text-slate-600">
                   <span>{formatNumber(colorMin)}</span>
                   <span>{formatNumber(colorMax)}</span>
@@ -508,14 +504,14 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           </div>
 
           {selectedPointId && dataset[selectedPointId] && (
-            <div className="border-t border-blue-100 p-4 bg-blue-50/80 max-h-1/2 overflow-y-auto">
-              <h3 className="font-medium text-sm mb-2 text-blue-800">
+            <div className="border-t border-purple-100 p-4 bg-purple-50/50 max-h-1/2 overflow-y-auto">
+              <h3 className="font-medium text-sm mb-2 text-purple-800">
                 {selectedPointId}
               </h3>
               
               <div className="mb-3">
-                <h4 className="text-xs font-medium text-blue-700/80 mb-1.5 uppercase">Outputs</h4>
-                <div className="bg-white rounded-lg border border-blue-100 p-3 text-xs">
+                <h4 className="text-xs font-medium text-purple-700/80 mb-1.5 uppercase">Outputs</h4>
+                <div className="bg-white rounded-lg border border-purple-100 p-3 text-xs">
                   <div className="grid grid-cols-2 gap-2">
                     {Object.entries(dataset[selectedPointId].outputs).map(([key, value]) => (
                       <div key={key} className="flex justify-between">
@@ -530,8 +526,8 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
               </div>
               
               <div>
-                <h4 className="text-xs font-medium text-blue-700/80 mb-1.5 uppercase">Key Inputs</h4>
-                <div className="bg-white rounded-lg border border-blue-100 p-3 text-xs">
+                <h4 className="text-xs font-medium text-purple-700/80 mb-1.5 uppercase">Key Inputs</h4>
+                <div className="bg-white rounded-lg border border-purple-100 p-3 text-xs">
                   <div className="grid grid-cols-1 gap-2">
                     {Object.entries(dataset[selectedPointId].inputs)
                       .filter(([_, value]) => typeof value === 'number' && value > 0)

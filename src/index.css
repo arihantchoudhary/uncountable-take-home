@@ -42,6 +42,10 @@
     --sidebar-accent-foreground: 240 6% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217 91% 60%;
+
+    --purple-primary: 255 91% 76%;
+    --teal-primary: 174 75% 53%;
+    --amber-primary: 35 92% 65%;
   }
 
   .dark {
@@ -113,7 +117,7 @@
   }
   
   .brand-gradient {
-    @apply bg-gradient-to-r from-[#2442ec] to-[#3a56f5];
+    @apply bg-gradient-to-r from-indigo-600 to-purple-500;
   }
   
   .card-gradient {
@@ -137,11 +141,15 @@
   }
   
   .chart-area {
-    @apply bg-gradient-to-b from-[#f8faff] to-[#f0f4ff] rounded-xl border border-blue-100 shadow-inner;
+    @apply bg-gradient-to-b from-[#f8faff] to-[#f0f4ff] rounded-xl border border-purple-100 shadow-inner;
   }
   
   .card-highlight {
-    @apply hover:border-primary/30 hover:shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-all;
+    @apply hover:border-purple-300 hover:shadow-[0_0_15px_rgba(147,51,234,0.15)] transition-all;
+  }
+  
+  .compact-tooltip {
+    @apply bg-white/95 p-2 border border-purple-200 rounded-md shadow-md backdrop-blur max-w-[200px] text-xs;
   }
 }
 
@@ -196,11 +204,9 @@
 }
 
 .experiment-card {
-  @apply border border-transparent hover:border-primary/20 hover:shadow-lg transition-all duration-300 bg-white rounded-xl overflow-hidden;
+  @apply border border-transparent hover:border-purple-200 hover:shadow-lg transition-all duration-300 bg-white rounded-xl overflow-hidden;
 }
 
 .label-badge {
-  @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20;
+  @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-purple-100 text-purple-700 hover:bg-purple-200;
 }
-
-/* Remove header-gradient class as we're using a solid color now */
