@@ -87,7 +87,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   }, [selectedPointId]);
 
   const formatExperimentId = (id: string) => {
-    return id.replace('20170', '').replace('_EXP_', '_');
+    return id.replace('20170', '').replace('_EXP', '_');
   };
 
   const scaleLinear = (value: number, domainMin: number, domainMax: number, rangeMin: number, rangeMax: number) => {
@@ -442,22 +442,20 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                 </div>
               </div>
               
-              {colorProperty && (
-                <div className="flex items-center space-x-2 w-full">
-                  <div className="flex items-center gap-1">
-                    <Info size={14} className="text-blue-600" />
-                    <span className="font-medium text-blue-800 text-xs">{colorProperty}</span>
-                  </div>
-                  
-                  <div className="flex-grow">
-                    <div className="h-3 w-full bg-gradient-to-r from-white to-blue-500 rounded-full" />
-                    <div className="flex justify-between mt-1 text-slate-600 text-xs">
-                      <span>{formatNumber(colorMin)}</span>
-                      <span>{formatNumber(colorMax)}</span>
-                    </div>
+              <div className="flex items-center space-x-2 w-full">
+                <div className="flex items-center gap-1">
+                  <Info size={14} className="text-blue-600" />
+                  <span className="font-medium text-blue-800 text-xs">{colorProperty}</span>
+                </div>
+                
+                <div className="flex-grow">
+                  <div className="h-3 w-full bg-gradient-to-r from-white to-blue-500 rounded-full" />
+                  <div className="flex justify-between mt-1 text-slate-600 text-xs">
+                    <span>{formatNumber(colorMin)}</span>
+                    <span>{formatNumber(colorMax)}</span>
                   </div>
                 </div>
-              )}
+              </div>
               
               <div className="text-xs text-slate-600">
                 <div className="font-medium mb-1 text-blue-800">Tips:</div>
