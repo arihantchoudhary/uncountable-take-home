@@ -87,7 +87,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   }, [selectedPointId]);
 
   const formatExperimentId = (id: string) => {
-    return id.replace('20170', '').replace('_EXP', '_');
+    return id.replace('20170', '').replace('_EXP', '-');
   };
 
   const scaleLinear = (value: number, domainMin: number, domainMax: number, rangeMin: number, rangeMax: number) => {
