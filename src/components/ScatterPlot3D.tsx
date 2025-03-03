@@ -1,10 +1,11 @@
-
-// ScatterPlot3D.jsx
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, extend } from '@react-three/fiber';
 import { OrbitControls, Text, Html, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { DataPoint, Property } from '@/types/dataset';
+
+// Extend THREE elements so they're recognized properly
+extend({ Line: THREE.Line });
 
 interface ScatterPlot3DProps {
   dataPoints: DataPoint[];
@@ -43,7 +44,7 @@ const mapValueToColor = (value: number, min: number, max: number): string => {
   }
 };
 
-// Updated AxisLine component using memoized geometry
+// Fixed AxisLine component with proper typing
 const AxisLine = ({ start, end, color }: { start: [number, number, number], end: [number, number, number], color: string }) => {
   const geometry = useMemo(() => {
     const geom = new THREE.BufferGeometry();
@@ -53,9 +54,7 @@ const AxisLine = ({ start, end, color }: { start: [number, number, number], end:
   }, [start, end]);
 
   return (
-    <line geometry={geometry}>
-      <lineBasicMaterial attach="material" color={color} />
-    </line>
+    <primitive object={new THREE.Line(geometry, new THREE.LineBasicMaterial({ color }))} />
   );
 };
 
@@ -191,7 +190,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
       >
         <PerspectiveCamera makeDefault position={[2, 2, 2]} fov={50} />
         <Scene autoRotate={autoRotate}>
-          <Axes xLabel={xProperty} yLabel={yProperty} zLabel={zProperty} />
+          <Axes xLabel={xProperty} yLabel={yProperty} zLabel={zLabel} />
           <DataPoints
             points={dataPoints}
             colorProperty={colorProperty}
