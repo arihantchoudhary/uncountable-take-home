@@ -18,7 +18,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity } from 'lucide-react';
+import { Activity, BarChart2, Database, Filter, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const DatasetExplorer: React.FC = () => {
@@ -158,26 +158,32 @@ const DatasetExplorer: React.FC = () => {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <header className="p-4 bg-background shadow-sm mb-4">
-        <div className="container mx-auto">
+      <header className="header-gradient text-white shadow-md mb-6">
+        <div className="container mx-auto py-4 px-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Activity className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Polymer Experiment Explorer
+            <div className="flex items-center space-x-4">
+              <img 
+                src="/uncountable-logo.png" 
+                alt="Uncountable Logo" 
+                className="h-10 mr-3"
+              />
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                Uncountable Dataset Visualization
               </h1>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-3">
               {filterSummaries.map((summary, index) => (
-                <Badge key={index} variant="outline" className="px-2 py-1">
+                <Badge key={index} variant="outline" className="px-2 py-1 bg-white/10 backdrop-blur border-white/20 text-white">
+                  <Filter className="h-3 w-3 mr-1 opacity-70" />
                   {summary.property}: {summary.range}
                 </Badge>
               ))}
               
               {filterSummaries.length > 0 && (
-                <Badge variant="secondary">
-                  {filteredExperiments.length} of {Object.keys(dataset).length} experiments
+                <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30">
+                  <Database className="h-3 w-3 mr-1 opacity-70" />
+                  {filteredExperiments.length} of {Object.keys(dataset).length}
                 </Badge>
               )}
             </div>
@@ -185,27 +191,34 @@ const DatasetExplorer: React.FC = () => {
         </div>
       </header>
       
-      <main className="flex-1 container mx-auto p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-8">
+      <main className="flex-1 container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-10">
         <div className="md:col-span-1">
-          <ControlPanel
-            onPropertiesChange={handlePropertiesChange}
-            onAutoRotateToggle={handleAutoRotateToggle}
-            isAutoRotating={autoRotate}
-            propertyStats={propertyStats}
-            onFilterChange={handleFilterChange}
-            onResetFilters={handleResetFilters}
-            onResetView={handleResetView}
-          />
+          <Card className="glass-card p-5 card-highlight">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart2 className="text-primary h-5 w-5" />
+              <h2 className="font-semibold text-base">Control Panel</h2>
+            </div>
+            <ControlPanel
+              onPropertiesChange={handlePropertiesChange}
+              onAutoRotateToggle={handleAutoRotateToggle}
+              isAutoRotating={autoRotate}
+              propertyStats={propertyStats}
+              onFilterChange={handleFilterChange}
+              onResetFilters={handleResetFilters}
+              onResetView={handleResetView}
+            />
+          </Card>
         </div>
         
         <div className="md:col-span-2 lg:col-span-2 h-[450px] md:h-[600px]">
           {isLoading ? (
-            <Card className="w-full h-full flex items-center justify-center">
-              <div className="loading-spinner" />
+            <Card className="w-full h-full glass-card flex flex-col items-center justify-center">
+              <div className="loading-spinner mb-4" />
+              <p className="text-muted-foreground text-sm animate-pulse">Loading dataset...</p>
             </Card>
           ) : hasError ? (
-            <Card className="w-full h-full flex flex-col items-center justify-center p-4 text-center gap-4">
-              <Activity className="h-12 w-12 text-muted-foreground animate-pulse" />
+            <Card className="w-full h-full glass-card flex flex-col items-center justify-center p-6 text-center gap-4">
+              <Activity className="h-12 w-12 text-destructive animate-pulse" />
               <div>
                 <h3 className="text-lg font-medium">Visualization Error</h3>
                 <p className="text-muted-foreground">
@@ -214,16 +227,17 @@ const DatasetExplorer: React.FC = () => {
               </div>
               <button 
                 onClick={() => window.location.reload()} 
-                className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+                className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2"
               >
+                <RefreshCw className="h-4 w-4" />
                 Reload Page
               </button>
             </Card>
           ) : (
-            <Card className="w-full h-full overflow-hidden border-none shadow-lg">
+            <Card className="w-full h-full overflow-hidden border-none glass-card">
               <Suspense fallback={
-                <div className="w-full h-full flex items-center justify-center">
-                  <Skeleton className="w-full h-full" />
+                <div className="w-full h-full flex items-center justify-center chart-area">
+                  <div className="loading-spinner" />
                 </div>
               }>
                 <ErrorBoundary>
@@ -244,33 +258,55 @@ const DatasetExplorer: React.FC = () => {
         </div>
         
         <div className="md:col-span-3 lg:col-span-1 space-y-4">
-          <h2 className="font-semibold text-lg">
-            {selectedPointId ? 'Selected Experiment' : 'Select an experiment'}
-          </h2>
+          <Card className="p-4 glass-card card-highlight">
+            <h2 className="font-semibold text-base mb-3 flex items-center gap-2">
+              <Database className="h-4 w-4 text-primary" />
+              {selectedPointId ? 'Selected Experiment' : 'Select an experiment'}
+            </h2>
+            
+            {selectedPointId ? (
+              <div className="experiment-card overflow-hidden">
+                <ExperimentCard
+                  experimentId={selectedPointId}
+                  experiment={getExperimentById(selectedPointId)}
+                />
+              </div>
+            ) : (
+              <div className="p-6 border border-dashed rounded-xl text-muted-foreground text-center flex flex-col items-center gap-3 bg-white/50">
+                <Activity className="h-12 w-12 text-primary/20 float-animation" />
+                <p>Click on a data point to view experiment details</p>
+              </div>
+            )}
+          </Card>
           
-          {selectedPointId ? (
-            <ExperimentCard
-              experimentId={selectedPointId}
-              experiment={getExperimentById(selectedPointId)}
-            />
-          ) : (
-            <Card className="p-4 border border-dashed text-muted-foreground text-center">
-              Click on a data point to view details
-            </Card>
-          )}
-          
-          {/* Small tips card */}
-          <Card className="p-4 bg-muted/40 border-none">
-            <h3 className="font-medium mb-2">Tips</h3>
-            <ul className="text-sm space-y-1 text-muted-foreground">
-              <li>• Click and drag to rotate the view</li>
-              <li>• Scroll to zoom in/out</li>
-              <li>• Click on data points to inspect experiments</li>
-              <li>• Use the controls to explore relationships</li>
+          {/* Enhanced tips card */}
+          <Card className="p-5 glass-card bg-gradient-to-br from-primary/5 to-primary/10 border-none">
+            <h3 className="font-medium mb-3 flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" />
+              Tips
+            </h3>
+            <ul className="space-y-2 text-sm">
+              {[
+                { icon: <MousePointer className="h-3.5 w-3.5 text-primary/70" />, text: "Click and drag to rotate the view" },
+                { icon: <MouseWheelIcon className="h-3.5 w-3.5 text-primary/70" />, text: "Scroll to zoom in/out" },
+                { icon: <PointerIcon className="h-3.5 w-3.5 text-primary/70" />, text: "Click on data points to inspect experiments" },
+                { icon: <Sliders className="h-3.5 w-3.5 text-primary/70" />, text: "Use the controls to explore relationships" }
+              ].map((tip, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  {tip.icon}
+                  <span className="text-muted-foreground">{tip.text}</span>
+                </li>
+              ))}
             </ul>
           </Card>
         </div>
       </main>
+      
+      <footer className="py-4 text-center text-sm text-muted-foreground border-t">
+        <div className="container mx-auto px-6">
+          Powered by <span className="font-medium text-primary">Uncountable</span>
+        </div>
+      </footer>
     </div>
   );
 };
@@ -293,15 +329,16 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   render() {
     if (this.state.hasError) {
       return (
-        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center gap-4">
+        <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center gap-4 chart-area">
           <h3 className="text-lg font-medium">Visualization Error</h3>
           <p className="text-muted-foreground">
-            There was a problem rendering the 3D visualization.
+            There was a problem rendering the visualization.
           </p>
           <button 
             onClick={() => this.setState({ hasError: false })} 
-            className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+            className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
           >
+            <RefreshCw className="h-4 w-4" />
             Try Again
           </button>
         </div>
@@ -311,5 +348,97 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
     return this.props.children;
   }
 }
+
+// Custom icons
+const Info = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
+
+const MousePointer = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    {...props}
+  >
+    <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+    <path d="M13 13l6 6" />
+  </svg>
+);
+
+const MouseWheelIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    {...props}
+  >
+    <rect x="6" y="3" width="12" height="18" rx="6" />
+    <line x1="12" y1="7" x2="12" y2="11" />
+  </svg>
+);
+
+const PointerIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    {...props}
+  >
+    <path d="M22 14a8 8 0 0 1-8 8" />
+    <path d="M18 11v-1a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+    <path d="M14 10V9a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v1" />
+    <path d="M10 9.5V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v10" />
+    <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+  </svg>
+);
+
+const Sliders = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    {...props}
+  >
+    <line x1="4" y1="21" x2="4" y2="14" />
+    <line x1="4" y1="10" x2="4" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12" y2="3" />
+    <line x1="20" y1="21" x2="20" y2="16" />
+    <line x1="20" y1="12" x2="20" y2="3" />
+    <line x1="1" y1="14" x2="7" y2="14" />
+    <line x1="9" y1="8" x2="15" y2="8" />
+    <line x1="17" y1="16" x2="23" y2="16" />
+  </svg>
+);
 
 export default DatasetExplorer;

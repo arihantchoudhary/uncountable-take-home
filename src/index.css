@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 210 100% 50%;
+    --primary: 231 91% 36%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96%;
@@ -23,7 +23,7 @@
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96%;
+    --accent: 231 91% 42%;
     --accent-foreground: 222 47% 11%;
 
     --destructive: 0 84% 60%;
@@ -98,7 +98,7 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white/50 backdrop-blur-lg rounded-2xl border border-white/20 shadow-lg;
+    @apply bg-white/80 backdrop-blur-lg rounded-2xl border border-white/30 shadow-lg;
   }
   
   .control-label {
@@ -111,6 +111,38 @@
   
   .subtle-animation {
     @apply transition-all ease-in-out duration-500;
+  }
+  
+  .brand-gradient {
+    @apply bg-gradient-to-r from-[#2442ec] to-[#3a56f5];
+  }
+  
+  .card-gradient {
+    @apply bg-gradient-to-br from-white/90 to-white/70;
+  }
+  
+  .data-card {
+    @apply rounded-xl border bg-card p-4 shadow-sm transition-all hover:shadow-md;
+  }
+  
+  .data-grid {
+    @apply grid gap-2 text-sm;
+  }
+  
+  .data-label {
+    @apply text-sm font-medium text-muted-foreground;
+  }
+  
+  .data-value {
+    @apply font-semibold text-foreground;
+  }
+  
+  .chart-area {
+    @apply bg-gradient-to-b from-[#f8faff] to-[#f0f4ff] rounded-xl border border-blue-100 shadow-inner;
+  }
+  
+  .card-highlight {
+    @apply hover:border-primary/30 hover:shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-all;
   }
 }
 
@@ -153,4 +185,25 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+.float-animation {
+  animation: float 5s ease-in-out infinite;
+}
+
+.experiment-card {
+  @apply border border-transparent hover:border-primary/20 hover:shadow-lg transition-all duration-300 bg-white rounded-xl overflow-hidden;
+}
+
+.label-badge {
+  @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20;
+}
+
+.header-gradient {
+  @apply bg-gradient-to-r from-[#1e3a8a]/95 via-[#2563eb]/95 to-[#1e3a8a]/95 backdrop-blur-sm;
 }
