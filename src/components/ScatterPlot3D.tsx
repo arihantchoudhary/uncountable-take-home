@@ -45,21 +45,31 @@ const mapValueToColor = (value: number, min: number, max: number): string => {
   }
 };
 
-// Fixed AxisLine component with proper typing
+// Fixed AxisLine component with proper typing and implementation
 const AxisLine = ({ start, end, color }: { start: [number, number, number], end: [number, number, number], color: string }) => {
-  const geometry = useMemo(() => {
-    const geom = new THREE.BufferGeometry();
-    const vertices = new Float32Array([...start, ...end]);
-    geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    return geom;
+  const points = useMemo(() => {
+    const points = [];
+    points.push(new THREE.Vector3(...start));
+    points.push(new THREE.Vector3(...end));
+    return points;
   }, [start, end]);
 
   return (
-    <primitive object={new THREE.Line(geometry, new THREE.LineBasicMaterial({ color }))} />
+    <line>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={points.length}
+          array={new Float32Array(points.flatMap(p => [p.x, p.y, p.z]))}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <lineBasicMaterial color={color} />
+    </line>
   );
 };
 
-// DataPoints component
+// DataPoints component with fixed implementation for colorProperty
 const DataPoints = ({ points, colorProperty, selectedPointId, onSelect }: {
   points: DataPoint[];
   colorProperty: Property;
@@ -67,7 +77,15 @@ const DataPoints = ({ points, colorProperty, selectedPointId, onSelect }: {
   onSelect: (id: string) => void;
 }) => {
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
-  const allValues = points.map(p => p.value);
+  
+  // Get values for the specified colorProperty instead of a generic "value"
+  const allValues = points.map(p => {
+    // Safely access the color property value from the point
+    return typeof p[colorProperty as keyof DataPoint] === 'number' 
+      ? p[colorProperty as keyof DataPoint] as number
+      : 0; // Default to 0 if property doesn't exist or isn't a number
+  });
+  
   const minValue = Math.min(...allValues);
   const maxValue = Math.max(...allValues);
 
@@ -76,14 +94,26 @@ const DataPoints = ({ points, colorProperty, selectedPointId, onSelect }: {
       {points.map((point) => {
         const isSelected = selectedPointId === point.id;
         const isHovered = hoveredPointId === point.id;
-        const color = mapValueToColor(point.value, minValue, maxValue);
+        
+        // Get the actual value for the specified colorProperty
+        const value = typeof point[colorProperty as keyof DataPoint] === 'number' 
+          ? point[colorProperty as keyof DataPoint] as number
+          : 0;
+          
+        const color = mapValueToColor(value, minValue, maxValue);
 
         return (
           <mesh
             key={point.id}
             position={[point.x, point.y, point.z]}
-            onClick={() => onSelect(point.id)}
-            onPointerOver={() => setHoveredPointId(point.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(point.id);
+            }}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              setHoveredPointId(point.id);
+            }}
             onPointerOut={() => setHoveredPointId(null)}
           >
             <sphereGeometry args={[isSelected ? 0.05 : isHovered ? 0.04 : 0.025]} />
@@ -100,7 +130,7 @@ const DataPoints = ({ points, colorProperty, selectedPointId, onSelect }: {
                   <div className="font-semibold text-center mb-1">{point.id}</div>
                   <div className="text-muted-foreground flex justify-between gap-2">
                     <span>{colorProperty}:</span>
-                    <span className="font-medium">{point.value.toFixed(1)}</span>
+                    <span className="font-medium">{value.toFixed(1)}</span>
                   </div>
                 </div>
               </Html>
@@ -145,7 +175,9 @@ const Scene = ({ children, autoRotate }: { children: React.ReactNode; autoRotate
     }
   };
 
-  useEffect(() => { resetCamera(); }, []);
+  useEffect(() => { 
+    resetCamera();
+  }, []);
 
   return (
     <>
@@ -166,7 +198,7 @@ const Scene = ({ children, autoRotate }: { children: React.ReactNode; autoRotate
   );
 };
 
-// Main component
+// Main component with error boundary
 const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   dataPoints,
   xProperty,
@@ -180,26 +212,67 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   const [key, setKey] = useState(0);
   const handleResetCamera = () => setKey(prev => prev + 1);
 
+  // Normalize data to fit within visualization bounds
+  const normalizedDataPoints = useMemo(() => {
+    if (!dataPoints || dataPoints.length === 0) {
+      return [];
+    }
+    
+    // Extract values for each axis
+    const xValues = dataPoints.map(p => p[xProperty as keyof DataPoint] as number);
+    const yValues = dataPoints.map(p => p[yProperty as keyof DataPoint] as number);
+    const zValues = dataPoints.map(p => p[zProperty as keyof DataPoint] as number);
+    
+    // Calculate min/max for each axis
+    const xMin = Math.min(...xValues);
+    const xMax = Math.max(...xValues);
+    const yMin = Math.min(...yValues);
+    const yMax = Math.max(...yValues);
+    const zMin = Math.min(...zValues);
+    const zMax = Math.max(...zValues);
+    
+    // Create normalized points
+    return dataPoints.map(point => {
+      // Normalize each value to range -1 to 1
+      const x = xMin === xMax ? 0 : (2 * ((point[xProperty as keyof DataPoint] as number) - xMin) / (xMax - xMin)) - 1;
+      const y = yMin === yMax ? 0 : (2 * ((point[yProperty as keyof DataPoint] as number) - yMin) / (yMax - yMin)) - 1;
+      const z = zMin === zMax ? 0 : (2 * ((point[zProperty as keyof DataPoint] as number) - zMin) / (zMax - zMin)) - 1;
+      
+      return {
+        ...point,
+        x,
+        y,
+        z
+      };
+    });
+  }, [dataPoints, xProperty, yProperty, zProperty]);
+
   return (
-    <div className="scene-container w-full h-full rounded-lg overflow-hidden">
-      <Canvas
-        key={key}
-        shadows
-        dpr={[1, 2]}
-        className="rounded-lg"
-        gl={{ antialias: true, alpha: true }}
-      >
-        <PerspectiveCamera makeDefault position={[2, 2, 2]} fov={50} />
-        <Scene autoRotate={autoRotate}>
-          <Axes xLabel={xProperty} yLabel={yProperty} zLabel={zProperty} />
-          <DataPoints
-            points={dataPoints}
-            colorProperty={colorProperty}
-            selectedPointId={selectedPointId}
-            onSelect={onPointSelect}
-          />
-        </Scene>
-      </Canvas>
+    <div className="scene-container w-full h-full rounded-lg overflow-hidden relative">
+      {normalizedDataPoints.length > 0 ? (
+        <Canvas
+          key={key}
+          shadows
+          dpr={[1, 2]}
+          className="rounded-lg"
+          gl={{ antialias: true, alpha: true }}
+        >
+          <PerspectiveCamera makeDefault position={[2, 2, 2]} fov={50} />
+          <Scene autoRotate={autoRotate}>
+            <Axes xLabel={xProperty} yLabel={yProperty} zLabel={zProperty} />
+            <DataPoints
+              points={normalizedDataPoints}
+              colorProperty={colorProperty}
+              selectedPointId={selectedPointId}
+              onSelect={onPointSelect}
+            />
+          </Scene>
+        </Canvas>
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+          <p className="text-gray-500">No data points available to display</p>
+        </div>
+      )}
       <div className="absolute bottom-4 right-4 bg-white/70 backdrop-blur-md p-2 rounded-md shadow-lg border border-gray-200">
         <div className="text-xs font-semibold mb-1">{colorProperty}</div>
         <div className="flex items-center gap-1">
