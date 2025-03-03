@@ -213,7 +213,10 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
             variant="ghost" 
             size="sm" 
             className="w-full mt-3 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-            onClick={() => onPointSelect(data.id)}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent chart click event
+              onPointSelect(data.id);
+            }}
           >
             <ExternalLink size={12} className="mr-1" />
             View Full Experiment
