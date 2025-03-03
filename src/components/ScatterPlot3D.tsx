@@ -368,6 +368,28 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
             </button>
           </div>
           
+          <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur p-3 rounded-md shadow-md border border-gray-200 text-xs">
+            <div className="flex items-center gap-1 mb-2">
+              <Layers size={14} className="text-blue-500" />
+              <span className="font-medium">{zProperty}</span>
+              <span className="text-gray-500 ml-1">(depth)</span>
+            </div>
+            
+            {colorProperty && (
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <Info size={14} className="text-blue-500" />
+                  <span className="font-medium">{colorProperty}</span>
+                </div>
+                <div className="h-2.5 w-full bg-gradient-to-r from-white to-blue-500 rounded-sm" />
+                <div className="flex justify-between mt-1 text-gray-600">
+                  <span>{colorMin.toFixed(1)}</span>
+                  <span>{colorMax.toFixed(1)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          
           <div className="w-full h-full bg-gradient-to-b from-[#f8faff] to-[#eef4ff] animate-fade-in">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart
@@ -430,28 +452,6 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                 ))}
               </ScatterChart>
             </ResponsiveContainer>
-          </div>
-
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur p-3 rounded-md shadow-md border border-gray-200 text-xs">
-            <div className="flex items-center gap-1 mb-2">
-              <Layers size={14} className="text-blue-500" />
-              <span className="font-medium">{zProperty}</span>
-              <span className="text-gray-500 ml-1">(depth)</span>
-            </div>
-            
-            {colorProperty && (
-              <div>
-                <div className="flex items-center gap-1 mb-1">
-                  <Info size={14} className="text-blue-500" />
-                  <span className="font-medium">{colorProperty}</span>
-                </div>
-                <div className="h-2.5 w-full bg-gradient-to-r from-blue-500 via-green-500 to-red-500 rounded-sm" />
-                <div className="flex justify-between mt-1 text-gray-600">
-                  <span>{colorMin.toFixed(1)}</span>
-                  <span>{colorMax.toFixed(1)}</span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
