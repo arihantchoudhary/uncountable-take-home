@@ -23,6 +23,8 @@ const buttonVariants = cva(
         purple: "bg-violet-500 text-white hover:bg-violet-600",
         teal: "bg-teal-400 text-white hover:bg-teal-500",
         amber: "bg-amber-400 text-white hover:bg-amber-500",
+        // Adding blue gradient variants
+        blueGradient: "bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700",
       },
       size: {
         default: "h-10 px-4 py-2",
