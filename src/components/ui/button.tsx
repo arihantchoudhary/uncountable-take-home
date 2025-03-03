@@ -19,10 +19,10 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        // Add complementary color variants
-        purple: "bg-purple-500 text-white hover:bg-purple-600",
-        teal: "bg-teal-500 text-white hover:bg-teal-600",
-        amber: "bg-amber-500 text-white hover:bg-amber-600",
+        // Updated complementary color variants with more pleasant colors
+        purple: "bg-violet-500 text-white hover:bg-violet-600",
+        teal: "bg-teal-400 text-white hover:bg-teal-500",
+        amber: "bg-amber-400 text-white hover:bg-amber-500",
       },
       size: {
         default: "h-10 px-4 py-2",
