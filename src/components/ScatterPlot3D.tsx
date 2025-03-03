@@ -1,12 +1,11 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { 
   OrbitControls, 
   Text,
   Html,
-  PerspectiveCamera,
-  useHelper
+  PerspectiveCamera
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { DataPoint, Property } from '@/types/dataset';
@@ -55,12 +54,19 @@ const mapValueToColor = (value: number, min: number, max: number): string => {
   }
 };
 
-// Simple axis component using simple lines
+// Fixed AxisLine component
 const AxisLine = ({ start, end, color }: { start: [number, number, number], end: [number, number, number], color: string }) => {
+  // Create a Float32Array containing the two points
+  const pointsArray = new Float32Array([...start, ...end]);
   return (
     <line>
       <bufferGeometry>
-        <float32BufferAttribute attach="attributes-position" args={[new Float32Array([...start, ...end]), 3]} />
+        <bufferAttribute 
+          attach="attributes.position" 
+          array={pointsArray} 
+          count={2} 
+          itemSize={3} 
+        />
       </bufferGeometry>
       <lineBasicMaterial color={color} />
     </line>
