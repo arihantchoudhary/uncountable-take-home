@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DataPoint, Property } from '@/types/dataset';
@@ -214,17 +215,10 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
 
   const handlePointHover = (pointId: string | null) => {
     setHoveredPointId(pointId);
-    if (pointId) {
-      const handlePointClick = () => {
-        onPointSelect(pointId);
-      };
-      
-      document.addEventListener('click', handlePointClick, { once: true });
-      
-      return () => {
-        document.removeEventListener('click', handlePointClick);
-      };
-    }
+  };
+
+  const handlePointClick = (pointId: string) => {
+    onPointSelect(pointId);
   };
 
   const formatNumber = (value: number) => {
@@ -352,13 +346,24 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                   verticalAlign="top" 
                   height={36}
                   wrapperStyle={{ paddingLeft: 20 }}
-                  formatter={(value) => <span className="text-xs font-medium text-blue-700">{value}</span>}
+                  formatter={(value, entry) => {
+                    const { payload } = entry;
+                    if (payload && selectedPointId && payload.id === selectedPointId) {
+                      return <span className="text-xs font-medium text-blue-700">Selected: {payload.id}</span>;
+                    }
+                    return <span className="text-xs font-medium text-blue-700">{value}</span>;
+                  }}
+                  onClick={(data) => {
+                    if (data && data.payload) {
+                      onPointSelect(data.payload.id);
+                    }
+                  }}
                 />
 
                 {projectedData.map((point) => (
                   <Scatter
                     key={`scatter-${point.id}`}
-                    name={point.id === selectedPointId ? `Selected: ${point.id}` : undefined}
+                    name={point.id === selectedPointId ? `Selected: ${point.id}` : point.id}
                     data={[point]}
                     fill={point.color}
                     strokeWidth={point.id === selectedPointId ? 3 : point.id === hoveredPointId ? 2 : 0.5}
@@ -366,6 +371,8 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                     fillOpacity={point.opacity}
                     onMouseEnter={() => handlePointHover(point.id)}
                     onMouseLeave={() => handlePointHover(null)}
+                    onClick={() => handlePointClick(point.id)}
+                    cursor="pointer"
                   />
                 ))}
               </ScatterChart>
