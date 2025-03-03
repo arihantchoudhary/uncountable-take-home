@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -111,6 +110,20 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     onResetFilters();
   };
   
+  // Updated Reset View handler
+  const handleResetView = () => {
+    // Reset filter range
+    handleResetFilters();
+    
+    // Reset rotation
+    if (isAutoRotating) {
+      onAutoRotateToggle();
+    }
+    
+    // Call parent's reset view
+    onResetView();
+  };
+  
   const handleApplyChanges = () => {
     onPropertiesChange(xProperty, yProperty, zProperty, colorProperty);
   };
@@ -197,24 +210,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               
               <Separator className="my-2" />
               
-              <div className="flex justify-between items-center">
-                <Toggle 
-                  pressed={isAutoRotating} 
-                  onPressedChange={onAutoRotateToggle}
-                  className={`data-[state=on]:bg-primary data-[state=on]:text-white`}
+              {/* Centered auto-rotate button with white background and blue text */}
+              <div className="flex justify-center items-center">
+                <Button
+                  variant="outline"
+                  className={`bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 border border-blue-200 ${isAutoRotating ? 'ring-2 ring-blue-200' : ''}`}
+                  onClick={onAutoRotateToggle}
                 >
                   <RotateCw className="h-4 w-4 mr-2" />
-                  Auto-rotate
-                </Toggle>
-                
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={onResetView}
-                  className="text-xs"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Reset View
+                  {isAutoRotating ? "Stop Rotation" : "Auto-Rotate"}
                 </Button>
               </div>
               

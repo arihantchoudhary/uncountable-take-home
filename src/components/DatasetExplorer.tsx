@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense, useRef } from 'react';
 import ScatterPlot3D from './ScatterPlot3D';
 import ControlPanel from './ControlPanel';
 import ExperimentCard from './ExperimentCard';
+import WelcomeGuide from './WelcomeGuide';
 import { 
   createDataPoints, 
   calculatePropertyStats, 
@@ -47,7 +48,16 @@ const DatasetExplorer: React.FC = () => {
   
   const { toast } = useToast();
   const hasLoadedRef = useRef(false);
+  const [showWelcomeGuide, setShowWelcomeGuide] = useState(false);
   
+  // Check if welcome guide should be shown
+  useEffect(() => {
+    const hasSeenGuide = localStorage.getItem('welcomeGuideShown') === 'true';
+    if (!hasSeenGuide) {
+      setShowWelcomeGuide(true);
+    }
+  }, []);
+
   // Load property statistics once
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -157,6 +167,7 @@ const DatasetExplorer: React.FC = () => {
 
   return (
     <div className="w-full h-full flex flex-col">
+      {showWelcomeGuide && <WelcomeGuide onClose={() => setShowWelcomeGuide(false)} />}
       <header className="bg-white text-blue-900 shadow-md mb-6">
         <div className="container mx-auto py-4 px-6">
           <div className="flex items-center justify-between">
@@ -283,7 +294,6 @@ const DatasetExplorer: React.FC = () => {
             <ul className="space-y-2 text-sm">
               {[
                 { icon: <MousePointer className="h-3.5 w-3.5 text-primary/70" />, text: "Click and drag to rotate the view" },
-                { icon: <MouseWheelIcon className="h-3.5 w-3.5 text-primary/70" />, text: "Scroll to zoom in/out" },
                 { icon: <PointerIcon className="h-3.5 w-3.5 text-primary/70" />, text: "Click on colored circles to select experiments" },
                 { icon: <Sliders className="h-3.5 w-3.5 text-primary/70" />, text: "Use the controls to explore relationships" }
               ].map((tip, index) => (
