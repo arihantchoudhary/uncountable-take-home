@@ -237,6 +237,21 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     return Object.keys(dataset).sort();
   }, []);
 
+  const legendData = useMemo(() => {
+    if (dataPoints.length === 0) return [];
+    
+    const result = [];
+    const step = Math.max(1, Math.floor(dataPoints.length / 10));
+    
+    for (let i = 0; i < dataPoints.length; i += step) {
+      if (result.length < 10) {
+        result.push(dataPoints[i]);
+      }
+    }
+    
+    return result;
+  }, [dataPoints]);
+
   return (
     <div className="w-full h-full flex">
       <div className="flex-grow relative">
@@ -296,10 +311,29 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
             </button>
           </div>
           
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white/80 px-3 py-2 rounded-lg shadow-md backdrop-blur-sm">
+            <div className="flex flex-wrap gap-2 justify-center">
+              {legendData.map((point) => (
+                <div
+                  key={`legend-${point.id}`}
+                  className={`w-6 h-6 rounded-full cursor-pointer border transition-all ${point.id === selectedPointId ? 'border-white shadow-lg scale-125' : 'border-transparent'}`}
+                  style={{ backgroundColor: getColorForValue(point.value || 0, colorMin, colorMax) }}
+                  onClick={() => onPointSelect(point.id)}
+                  title={point.id}
+                />
+              ))}
+            </div>
+            {selectedPointId && (
+              <div className="text-xs text-center mt-1 font-medium text-blue-700">
+                Selected: {selectedPointId}
+              </div>
+            )}
+          </div>
+          
           <div className="w-full h-full bg-gradient-to-b from-[#f8faff] to-[#eef4ff] animate-fade-in">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart
-                margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                margin={{ top: 50, right: 20, bottom: 20, left: 20 }}
                 onClick={handleChartClick}
               >
                 <CartesianGrid 
@@ -341,23 +375,6 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                   cursor={{ strokeDasharray: '3 3', stroke: 'rgba(59, 130, 246, 0.4)' }}
                 />
                 
-                <Legend 
-                  verticalAlign="top" 
-                  height={36}
-                  wrapperStyle={{ paddingLeft: 20 }}
-                  formatter={(value, entry: any) => {
-                    if (entry && entry.payload && selectedPointId && entry.payload.id === selectedPointId) {
-                      return <span className="text-xs font-medium text-blue-700">Selected: {entry.payload.id}</span>;
-                    }
-                    return <span className="text-xs font-medium text-blue-700">{value}</span>;
-                  }}
-                  onClick={(data: any) => {
-                    if (data && data.payload && data.payload.id) {
-                      onPointSelect(data.payload.id);
-                    }
-                  }}
-                />
-
                 {projectedData.map((point) => (
                   <Scatter
                     key={`scatter-${point.id}`}
@@ -428,7 +445,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
             </div>
           </div>
 
-          {selectedExperiment && (
+          {selectedPointId && dataset[selectedPointId] && (
             <div className="border-t border-blue-100 p-4 bg-blue-50/80 max-h-1/2 overflow-y-auto">
               <h3 className="font-medium text-sm mb-2 text-blue-800">
                 {selectedPointId}
@@ -438,7 +455,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                 <h4 className="text-xs font-medium text-blue-700/80 mb-1.5 uppercase">Outputs</h4>
                 <div className="bg-white rounded-lg border border-blue-100 p-3 text-xs">
                   <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(selectedExperiment.outputs).map(([key, value]) => (
+                    {Object.entries(dataset[selectedPointId].outputs).map(([key, value]) => (
                       <div key={key} className="flex justify-between">
                         <span className="text-slate-600">{key}:</span>
                         <span className="font-medium text-slate-800">
@@ -454,7 +471,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                 <h4 className="text-xs font-medium text-blue-700/80 mb-1.5 uppercase">Key Inputs</h4>
                 <div className="bg-white rounded-lg border border-blue-100 p-3 text-xs">
                   <div className="grid grid-cols-1 gap-2">
-                    {Object.entries(selectedExperiment.inputs)
+                    {Object.entries(dataset[selectedPointId].inputs)
                       .filter(([_, value]) => typeof value === 'number' && value > 0)
                       .sort(([_, a], [__, b]) => (b as number) - (a as number))
                       .map(([key, value]) => (
