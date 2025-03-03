@@ -3,9 +3,10 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { 
   OrbitControls, 
-  Text, 
+  Text,
   Html,
-  PerspectiveCamera
+  PerspectiveCamera,
+  useHelper
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { DataPoint, Property } from '@/types/dataset';
@@ -54,13 +55,25 @@ const mapValueToColor = (value: number, min: number, max: number): string => {
   }
 };
 
+// Simple axis component using simple lines
+const AxisLine = ({ start, end, color }: { start: [number, number, number], end: [number, number, number], color: string }) => {
+  return (
+    <line>
+      <bufferGeometry>
+        <float32BufferAttribute attach="attributes-position" args={[new Float32Array([...start, ...end]), 3]} />
+      </bufferGeometry>
+      <lineBasicMaterial color={color} />
+    </line>
+  );
+};
+
 // DataPoints component
-const DataPoints: React.FC<{
+const DataPoints = ({ points, colorProperty, selectedPointId, onSelect }: {
   points: DataPoint[];
   colorProperty: Property;
   selectedPointId: string | null;
   onSelect: (id: string) => void;
-}> = ({ points, colorProperty, selectedPointId, onSelect }) => {
+}) => {
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
   
   // Get min and max values for color mapping
@@ -114,26 +127,12 @@ const DataPoints: React.FC<{
   );
 };
 
-// Axes component
-const Axes: React.FC<{
-  xLabel: string;
-  yLabel: string;
-  zLabel: string;
-}> = ({ xLabel, yLabel, zLabel }) => {
+// Simplified Axes component
+const Axes = ({ xLabel, yLabel, zLabel }: { xLabel: string; yLabel: string; zLabel: string }) => {
   return (
     <group>
       {/* X-axis */}
-      <mesh>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            array={new Float32Array([-1.2, 0, 0, 1.2, 0, 0])}
-            count={2}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial color="hsl(0, 0%, 30%)" />
-      </mesh>
+      <AxisLine start={[-1.2, 0, 0]} end={[1.2, 0, 0]} color="hsl(0, 0%, 30%)" />
       <Text
         position={[1.3, 0, 0]}
         fontSize={0.1}
@@ -144,17 +143,7 @@ const Axes: React.FC<{
       </Text>
 
       {/* Y-axis */}
-      <mesh>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            array={new Float32Array([0, -1.2, 0, 0, 1.2, 0])}
-            count={2}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial color="hsl(0, 0%, 30%)" />
-      </mesh>
+      <AxisLine start={[0, -1.2, 0]} end={[0, 1.2, 0]} color="hsl(0, 0%, 30%)" />
       <Text
         position={[0, 1.3, 0]}
         fontSize={0.1}
@@ -166,17 +155,7 @@ const Axes: React.FC<{
       </Text>
 
       {/* Z-axis */}
-      <mesh>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            array={new Float32Array([0, 0, -1.2, 0, 0, 1.2])}
-            count={2}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial color="hsl(0, 0%, 30%)" />
-      </mesh>
+      <AxisLine start={[0, 0, -1.2]} end={[0, 0, 1.2]} color="hsl(0, 0%, 30%)" />
       <Text
         position={[0, 0, 1.3]}
         fontSize={0.1}
@@ -190,28 +169,25 @@ const Axes: React.FC<{
 };
 
 // Scene setup with grid and controls
-const Scene: React.FC<{
+const Scene = ({ children, autoRotate }: {
   children: React.ReactNode;
   autoRotate: boolean;
-  onResetCamera: React.MutableRefObject<(() => void) | null>;
-}> = ({ children, autoRotate, onResetCamera }) => {
+}) => {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
   
-  useEffect(() => {
-    if (onResetCamera) {
-      const resetCamera = () => {
-        camera.position.set(2, 2, 2);
-        camera.lookAt(0, 0, 0);
-        if (controlsRef.current) {
-          controlsRef.current.reset();
-        }
-      };
-      
-      // Expose the reset function
-      onResetCamera.current = resetCamera;
+  const resetCamera = () => {
+    camera.position.set(2, 2, 2);
+    camera.lookAt(0, 0, 0);
+    if (controlsRef.current) {
+      controlsRef.current.reset();
     }
-  }, [camera, onResetCamera]);
+  };
+
+  // Reset camera position on mount
+  useEffect(() => {
+    resetCamera();
+  }, []);
   
   return (
     <>
@@ -243,19 +219,24 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
   onPointSelect,
   selectedPointId,
 }) => {
-  const resetCameraRef = useRef<(() => void) | null>(null);
-  
+  const [key, setKey] = useState(0); // Add a key to force remount when needed
+
   const handleResetCamera = () => {
-    if (resetCameraRef.current) {
-      resetCameraRef.current();
-    }
+    // Force a remount of the Canvas component
+    setKey(prev => prev + 1);
   };
 
   return (
     <div className="scene-container w-full h-full rounded-lg overflow-hidden">
-      <Canvas shadows dpr={[1, 2]} className="rounded-lg">
+      <Canvas 
+        key={key}
+        shadows 
+        dpr={[1, 2]} 
+        className="rounded-lg"
+        gl={{ antialias: true, alpha: true }}
+      >
         <PerspectiveCamera makeDefault position={[2, 2, 2]} fov={50} />
-        <Scene autoRotate={autoRotate} onResetCamera={resetCameraRef}>
+        <Scene autoRotate={autoRotate}>
           <Axes xLabel={xProperty} yLabel={yProperty} zLabel={zProperty} />
           <DataPoints 
             points={dataPoints} 
