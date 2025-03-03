@@ -3,7 +3,6 @@ import React, { useState, useEffect, Suspense, useRef } from 'react';
 import ScatterPlot3D from './ScatterPlot3D';
 import ControlPanel from './ControlPanel';
 import ExperimentCard from './ExperimentCard';
-import ColorScaleLegend from './ColorScaleLegend';
 import { 
   createDataPoints, 
   calculatePropertyStats, 
@@ -19,7 +18,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, BarChart2, Database, Filter, RefreshCw, Sliders } from 'lucide-react';
+import { Activity, BarChart2, Database, Filter, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const DatasetExplorer: React.FC = () => {
@@ -156,12 +155,7 @@ const DatasetExplorer: React.FC = () => {
     property: filter.property,
     range: `${filter.min.toFixed(1)} - ${filter.max.toFixed(1)}`
   }));
-  
-  // Format experiment ID for display (remove "20170" prefix and "_EXP_" part)
-  const formatExperimentId = (id: string) => {
-    return id.replace('20170', '').replace('_EXP_', '_');
-  };
-  
+
   return (
     <div className="w-full h-full flex flex-col">
       <header className="bg-white text-blue-900 shadow-md mb-6">
@@ -211,64 +205,50 @@ const DatasetExplorer: React.FC = () => {
           </Card>
         </div>
         
-        <div className="md:col-span-2 lg:col-span-2 flex flex-col gap-4">
-          <div className="h-[450px] md:h-[550px]">
-            {isLoading ? (
-              <Card className="w-full h-full glass-card flex flex-col items-center justify-center">
-                <div className="loading-spinner mb-4" />
-                <p className="text-muted-foreground text-sm animate-pulse">Loading dataset...</p>
-              </Card>
-            ) : hasError ? (
-              <Card className="w-full h-full glass-card flex flex-col items-center justify-center p-6 text-center gap-4">
-                <Activity className="h-12 w-12 text-destructive animate-pulse" />
-                <div>
-                  <h3 className="text-lg font-medium">Visualization Error</h3>
-                  <p className="text-muted-foreground">
-                    There was a problem loading the 3D visualization.
-                  </p>
+        <div className="md:col-span-2 lg:col-span-2 h-[450px] md:h-[600px]">
+          {isLoading ? (
+            <Card className="w-full h-full glass-card flex flex-col items-center justify-center">
+              <div className="loading-spinner mb-4" />
+              <p className="text-muted-foreground text-sm animate-pulse">Loading dataset...</p>
+            </Card>
+          ) : hasError ? (
+            <Card className="w-full h-full glass-card flex flex-col items-center justify-center p-6 text-center gap-4">
+              <Activity className="h-12 w-12 text-destructive animate-pulse" />
+              <div>
+                <h3 className="text-lg font-medium">Visualization Error</h3>
+                <p className="text-muted-foreground">
+                  There was a problem loading the 3D visualization.
+                </p>
+              </div>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reload Page
+              </button>
+            </Card>
+          ) : (
+            <Card className="w-full h-full overflow-hidden border-none glass-card">
+              <Suspense fallback={
+                <div className="w-full h-full flex items-center justify-center chart-area">
+                  <div className="loading-spinner" />
                 </div>
-                <button 
-                  onClick={() => window.location.reload()} 
-                  className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Reload Page
-                </button>
-              </Card>
-            ) : (
-              <Card className="w-full h-full overflow-hidden border-none glass-card">
-                <Suspense fallback={
-                  <div className="w-full h-full flex items-center justify-center chart-area">
-                    <div className="loading-spinner" />
-                  </div>
-                }>
-                  <ErrorBoundary>
-                    <ScatterPlot3D
-                      dataPoints={dataPoints}
-                      xProperty={xProperty}
-                      yProperty={yProperty}
-                      zProperty={zProperty}
-                      colorProperty={colorProperty}
-                      autoRotate={autoRotate}
-                      onPointSelect={handlePointSelect}
-                      selectedPointId={selectedPointId}
-                      formatExperimentId={formatExperimentId}
-                    />
-                  </ErrorBoundary>
-                </Suspense>
-              </Card>
-            )}
-          </div>
-          
-          {/* Color Scale Legend */}
-          {!isLoading && !hasError && propertyStats[colorProperty] && (
-            <ColorScaleLegend
-              property={colorProperty}
-              min={propertyStats[colorProperty].min}
-              max={propertyStats[colorProperty].max}
-              colorStart="#ffffff"
-              colorEnd="#1e40af"
-            />
+              }>
+                <ErrorBoundary>
+                  <ScatterPlot3D
+                    dataPoints={dataPoints}
+                    xProperty={xProperty}
+                    yProperty={yProperty}
+                    zProperty={zProperty}
+                    colorProperty={colorProperty}
+                    autoRotate={autoRotate}
+                    onPointSelect={handlePointSelect}
+                    selectedPointId={selectedPointId}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            </Card>
           )}
         </div>
         
@@ -302,10 +282,10 @@ const DatasetExplorer: React.FC = () => {
             </h3>
             <ul className="space-y-2 text-sm">
               {[
-                { icon: <Sliders className="h-3.5 w-3.5 text-primary/70" />, text: "Use controls to change axes and visualize different properties" },
-                { icon: <RefreshCw className="h-3.5 w-3.5 text-primary/70" />, text: "Toggle auto-rotate to better view the 3D space" },
+                { icon: <MousePointer className="h-3.5 w-3.5 text-primary/70" />, text: "Click and drag to rotate the view" },
+                { icon: <MouseWheelIcon className="h-3.5 w-3.5 text-primary/70" />, text: "Scroll to zoom in/out" },
                 { icon: <PointerIcon className="h-3.5 w-3.5 text-primary/70" />, text: "Click on colored circles to select experiments" },
-                { icon: <Filter className="h-3.5 w-3.5 text-primary/70" />, text: "Apply filters to explore specific data ranges" }
+                { icon: <Sliders className="h-3.5 w-3.5 text-primary/70" />, text: "Use the controls to explore relationships" }
               ].map((tip, index) => (
                 <li key={index} className="flex items-start gap-2">
                   {tip.icon}
