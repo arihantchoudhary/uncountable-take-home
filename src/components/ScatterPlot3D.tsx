@@ -87,6 +87,18 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     }
   }, [selectedPointId]);
 
+  // Function to format experiment ID for display in circles
+  const formatExperimentId = (id: string) => {
+    // If format is like 20170102_EXP_56, extract 102_56
+    const match = id.match(/\d{4}(\d{2})(\d{2})_EXP_(\d+)/);
+    if (match) {
+      return `${match[1]}${match[2]}_${match[3]}`;
+    }
+    
+    // If another format, try to extract something meaningful or return the original
+    return id.length > 6 ? id.substring(id.length - 6) : id;
+  };
+
   const scaleLinear = (value: number, domainMin: number, domainMax: number, rangeMin: number, rangeMax: number) => {
     if (domainMax === domainMin) return rangeMin;
     return rangeMin + ((value - domainMin) / (domainMax - domainMin)) * (rangeMax - rangeMin);
@@ -315,10 +327,12 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                     <UITooltip>
                       <TooltipTrigger asChild>
                         <div
-                          className={`w-6 h-6 rounded-full cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs cursor-pointer border-2 transition-all ${result.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
                           style={{ backgroundColor: getColorForValue(result.value || 0, colorMin, colorMax) }}
                           onClick={() => onPointSelect(result.id)}
-                        />
+                        >
+                          {formatExperimentId(result.id)}
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom">
                         <p className="text-xs font-medium">{result.id}</p>
@@ -339,10 +353,12 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                       <UITooltip>
                         <TooltipTrigger asChild>
                           <div
-                            className={`w-6 h-6 rounded-full cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-[9px] cursor-pointer border-2 transition-all ${point.id === selectedPointId ? 'border-blue-500 shadow-lg scale-110' : 'border-transparent'}`}
                             style={{ backgroundColor: getColorForValue(point.value || 0, colorMin, colorMax) }}
                             onClick={() => onPointSelect(point.id)}
-                          />
+                          >
+                            {formatExperimentId(point.id)}
+                          </div>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
                           <p className="text-xs font-medium">{point.id}</p>
