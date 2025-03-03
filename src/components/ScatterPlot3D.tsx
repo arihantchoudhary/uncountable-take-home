@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DataPoint, Property } from '@/types/dataset';
 import { Layers, Info, ChevronRight, Search, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -142,8 +142,6 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
       
       const opacity = isSelected ? 1 : isHovered ? 0.95 : 0.4 + depthFactor * 0.6;
       
-      const formattedZ = formatNumber(point.z);
-      
       return {
         ...point,
         x: x2d,
@@ -152,8 +150,7 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
         color,
         size,
         opacity,
-        glow: isSelected || isHovered ? true : false,
-        formattedZ
+        glow: isSelected || isHovered ? true : false
       };
     }).sort((a, b) => a.z - b.z);
   }, [dataPoints, viewAngle, selectedPointId, hoveredPointId]);
@@ -439,47 +436,19 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
                 />
                 
                 {projectedData.map((point) => (
-                  <React.Fragment key={`scatter-${point.id}`}>
-                    <Scatter
-                      name={point.id === selectedPointId ? `Selected: ${point.id}` : point.id}
-                      data={[point]}
-                      fill={point.color}
-                      strokeWidth={point.id === selectedPointId ? 3 : point.id === hoveredPointId ? 2 : 0.5}
-                      stroke={point.id === selectedPointId ? '#ffffff' : point.id === hoveredPointId ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.3)'}
-                      fillOpacity={point.opacity}
-                      onMouseEnter={() => handlePointHover(point.id)}
-                      onMouseLeave={() => handlePointHover(null)}
-                      onClick={() => handlePointClick(point.id)}
-                      cursor="pointer"
-                      shape={(props) => {
-                        const { cx, cy, fill, stroke, strokeWidth, fillOpacity } = props;
-                        
-                        return (
-                          <g>
-                            <circle
-                              cx={cx}
-                              cy={cy}
-                              r={props.r}
-                              fill={fill}
-                              stroke={stroke}
-                              strokeWidth={strokeWidth}
-                              fillOpacity={fillOpacity}
-                            />
-                            <text 
-                              x={cx + props.r + 2} 
-                              y={cy} 
-                              dy=".3em" 
-                              textAnchor="start" 
-                              fill="rgba(0,0,0,0.7)" 
-                              fontSize="9"
-                            >
-                              {point.formattedZ}
-                            </text>
-                          </g>
-                        );
-                      }}
-                    />
-                  </React.Fragment>
+                  <Scatter
+                    key={`scatter-${point.id}`}
+                    name={point.id === selectedPointId ? `Selected: ${point.id}` : point.id}
+                    data={[point]}
+                    fill={point.color}
+                    strokeWidth={point.id === selectedPointId ? 3 : point.id === hoveredPointId ? 2 : 0.5}
+                    stroke={point.id === selectedPointId ? '#ffffff' : point.id === hoveredPointId ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.3)'}
+                    fillOpacity={point.opacity}
+                    onMouseEnter={() => handlePointHover(point.id)}
+                    onMouseLeave={() => handlePointHover(null)}
+                    onClick={() => handlePointClick(point.id)}
+                    cursor="pointer"
+                  />
                 ))}
               </ScatterChart>
             </ResponsiveContainer>
