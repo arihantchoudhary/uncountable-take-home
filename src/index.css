@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -114,7 +113,7 @@
   }
   
   .brand-gradient {
-    @apply bg-gradient-to-r from-[#9b87f5] to-[#7E69AB];
+    @apply bg-gradient-to-r from-[#2442ec] to-[#3a56f5];
   }
   
   .card-gradient {
@@ -143,11 +142,6 @@
   
   .card-highlight {
     @apply hover:border-primary/30 hover:shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-all;
-  }
-  
-  .experiment-number {
-    @apply text-[9px] font-bold leading-none text-center;
-    text-shadow: 0 0 2px rgba(255,255,255,0.5);
   }
 }
 
@@ -208,3 +202,5 @@
 .label-badge {
   @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20;
 }
+
+/* Remove header-gradient class as we're using a solid color now */
