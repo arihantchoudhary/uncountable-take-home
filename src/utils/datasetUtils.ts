@@ -754,232 +754,220 @@ export const dataset: Dataset = {
      }
   }
 };
-
-// Get all input properties
 export const getInputProperties = (): InputProperty[] => {
-  const inputs = Object.keys(Object.values(dataset)[0].inputs) as InputProperty[];
-  return inputs;
-};
-
-// Get all output properties
-export const getOutputProperties = (): OutputProperty[] => {
-  const outputs = Object.keys(Object.values(dataset)[0].outputs) as OutputProperty[];
-  return outputs;
-};
-
-// Get all properties (inputs and outputs)
-export const getAllProperties = (): Property[] => {
-  return [...getInputProperties(), ...getOutputProperties()];
-};
-
-// Calculate property statistics (min, max)
-export const calculatePropertyStats = (): PropertyStats => {
-  const stats: PropertyStats = {};
-  
-  // Initialize with first experiment
-  const firstExperiment = Object.values(dataset)[0];
-  
-  // Initialize stats for inputs
-  Object.entries(firstExperiment.inputs).forEach(([property, value]) => {
-    stats[property] = { min: value, max: value };
-  });
-  
-  // Initialize stats for outputs
-  Object.entries(firstExperiment.outputs).forEach(([property, value]) => {
-    stats[property] = { min: value, max: value };
-  });
-  
-  // Calculate min and max for each property
-  Object.values(dataset).forEach(experiment => {
-    // Process inputs
-    Object.entries(experiment.inputs).forEach(([property, value]) => {
-      if (value < stats[property].min) stats[property].min = value;
-      if (value > stats[property].max) stats[property].max = value;
-    });
-    
-    // Process outputs
-    Object.entries(experiment.outputs).forEach(([property, value]) => {
-      if (value < stats[property].min) stats[property].min = value;
-      if (value > stats[property].max) stats[property].max = value;
-    });
-  });
-  
-  return stats;
-};
-
-// Normalize a value between 0 and 1
-export const normalizeValue = (value: number, min: number, max: number): number => {
-  if (min === max) return 0.5;
-  return (value - min) / (max - min);
-};
-
-// Create 3D data points for visualization
-export const createDataPoints = (
-  xProperty: Property,
-  yProperty: Property,
-  zProperty: Property,
-  colorProperty: Property,
-  stats: PropertyStats
-): DataPoint[] => {
-  const dataPoints: DataPoint[] = [];
-  
-  Object.entries(dataset).forEach(([id, experiment]) => {
-    // Get property values (could be input or output)
-    const getValue = (property: Property): number => {
-      if (Object.keys(experiment.inputs).includes(property)) {
-        return experiment.inputs[property as InputProperty];
-      } else {
-        return experiment.outputs[property as OutputProperty];
-      }
-    };
-    
-    const xValue = getValue(xProperty);
-    const yValue = getValue(yProperty);
-    const zValue = getValue(zProperty);
-    const colorValue = getValue(colorProperty);
-    
-    // Normalize values for visualization
-    const x = normalizeValue(xValue, stats[xProperty].min, stats[xProperty].max) * 2 - 1;
-    const y = normalizeValue(yValue, stats[yProperty].min, stats[yProperty].max) * 2 - 1;
-    const z = normalizeValue(zValue, stats[zProperty].min, stats[zProperty].max) * 2 - 1;
-    
-    dataPoints.push({
-      id,
-      x,
-      y,
-      z,
-      value: colorValue,
-      experiment
-    });
-  });
-  
-  return dataPoints;
-};
-
-// Filter experiments based on property ranges
-export const filterExperiments = (
-  propertyFilters: { property: Property; min: number; max: number }[]
-): string[] => {
-  return Object.entries(dataset)
-    .filter(([id, experiment]) => {
-      // Check if experiment passes all filters
-      return propertyFilters.every(filter => {
-        const { property, min, max } = filter;
-        let value;
-        
-        if (Object.keys(experiment.inputs).includes(property)) {
-          value = experiment.inputs[property as InputProperty];
-        } else {
-          value = experiment.outputs[property as OutputProperty];
-        }
-        
-        return value >= min && value <= max;
-      });
-    })
-    .map(([id]) => id);
-};
-
-// Group experiments by a property within ranges
-export const groupExperimentsByProperty = (
-  property: Property,
-  ranges: number[]
-): { [range: string]: string[] } => {
-  const result: { [range: string]: string[] } = {};
-  
-  // Create range buckets
-  for (let i = 0; i < ranges.length - 1; i++) {
-    const rangeName = `${ranges[i]}-${ranges[i + 1]}`;
-    result[rangeName] = [];
-  }
-  
-  // Assign experiments to ranges
-  Object.entries(dataset).forEach(([id, experiment]) => {
-    let value;
-    
-    if (Object.keys(experiment.inputs).includes(property)) {
-      value = experiment.inputs[property as InputProperty];
-    } else {
-      value = experiment.outputs[property as OutputProperty];
-    }
-    
-    // Find the range this value belongs to
-    for (let i = 0; i < ranges.length - 1; i++) {
-      if (value >= ranges[i] && value < ranges[i + 1]) {
-        const rangeName = `${ranges[i]}-${ranges[i + 1]}`;
-        result[rangeName].push(id);
-        break;
-      }
-    }
-  });
-  
-  return result;
-};
-
-// Calculate correlations between properties
-export const calculateCorrelation = (property1: Property, property2: Property): number => {
-  const values1: number[] = [];
-  const values2: number[] = [];
-  
-  Object.values(dataset).forEach(experiment => {
-    let value1;
-    let value2;
-    
-    if (Object.keys(experiment.inputs).includes(property1)) {
-      value1 = experiment.inputs[property1 as InputProperty];
-    } else {
-      value1 = experiment.outputs[property1 as OutputProperty];
-    }
-    
-    if (Object.keys(experiment.inputs).includes(property2)) {
-      value2 = experiment.inputs[property2 as InputProperty];
-    } else {
-      value2 = experiment.outputs[property2 as OutputProperty];
-    }
-    
-    values1.push(value1);
-    values2.push(value2);
-  });
-  
-  // Calculate correlation coefficient
-  const n = values1.length;
-  const sum1 = values1.reduce((a, b) => a + b, 0);
-  const sum2 = values2.reduce((a, b) => a + b, 0);
-  const sum1Sq = values1.reduce((a, b) => a + b * b, 0);
-  const sum2Sq = values2.reduce((a, b) => a + b * b, 0);
-  const sumProd = values1.reduce((a, b, i) => a + b * values2[i], 0);
-  
-  const numerator = n * sumProd - sum1 * sum2;
-  const denominator = Math.sqrt((n * sum1Sq - sum1 * sum1) * (n * sum2Sq - sum2 * sum2));
-  
-  if (denominator === 0) return 0;
-  return numerator / denominator;
-};
-
-// Get experiment by ID
-export const getExperimentById = (id: string) => {
-  return dataset[id];
-};
-
-// Get experiment properties formatted for display
-export const getFormattedExperimentData = (id: string) => {
-  const experiment = getExperimentById(id);
-  if (!experiment) return null;
-  
-  const formattedInputs = Object.entries(experiment.inputs)
-    .filter(([_, value]) => value > 0) // Only include non-zero values
-    .map(([property, value]) => ({
-      property,
-      value: value.toFixed(1),
-    }));
-  
-  const formattedOutputs = Object.entries(experiment.outputs).map(([property, value]) => ({
-    property,
-    value: property === "Cure Time" ? value.toFixed(2) : value.toFixed(1),
-  }));
-  
-  return {
-    id,
-    inputs: formattedInputs,
-    outputs: formattedOutputs,
-  };
-};
+   const inputs = Object.keys(Object.values(dataset)[0].inputs) as InputProperty[];
+   return inputs;
+ };
+ 
+ // Get all output properties
+ export const getOutputProperties = (): OutputProperty[] => {
+   const outputs = Object.keys(Object.values(dataset)[0].outputs) as OutputProperty[];
+   return outputs;
+ };
+ 
+ // Get all properties (inputs and outputs)
+ export const getAllProperties = (): Property[] => {
+   return [...getInputProperties(), ...getOutputProperties()];
+ };
+ 
+ // Calculate property statistics (min, max)
+ export const calculatePropertyStats = (): PropertyStats => {
+   const stats: PropertyStats = {};
+   
+   // Initialize with first experiment
+   const firstExperiment = Object.values(dataset)[0];
+   
+   // Initialize stats for inputs
+   Object.entries(firstExperiment.inputs).forEach(([property, value]) => {
+     stats[property] = { min: value, max: value };
+   });
+   
+   // Initialize stats for outputs
+   Object.entries(firstExperiment.outputs).forEach(([property, value]) => {
+     stats[property] = { min: value, max: value };
+   });
+   
+   // Calculate min and max for each property
+   Object.values(dataset).forEach(experiment => {
+     // Process inputs
+     Object.entries(experiment.inputs).forEach(([property, value]) => {
+       if (value < stats[property].min) stats[property].min = value;
+       if (value > stats[property].max) stats[property].max = value;
+     });
+     
+     // Process outputs
+     Object.entries(experiment.outputs).forEach(([property, value]) => {
+       if (value < stats[property].min) stats[property].min = value;
+       if (value > stats[property].max) stats[property].max = value;
+     });
+   });
+   
+   return stats;
+ };
+ 
+ // Create 3D data points for visualization WITHOUT normalization
+ export const createDataPoints = (
+   xProperty: Property,
+   yProperty: Property,
+   zProperty: Property,
+   colorProperty: Property,
+   stats: PropertyStats
+ ): DataPoint[] => {
+   const dataPoints: DataPoint[] = [];
+   
+   Object.entries(dataset).forEach(([id, experiment]) => {
+     // Get property values (could be input or output)
+     const getValue = (property: Property): number => {
+       if (Object.keys(experiment.inputs).includes(property)) {
+         return experiment.inputs[property as InputProperty];
+       } else {
+         return experiment.outputs[property as OutputProperty];
+       }
+     };
+     
+     // Use raw values directly without normalization
+     const x = getValue(xProperty);
+     const y = getValue(yProperty);
+     const z = getValue(zProperty);
+     const colorValue = getValue(colorProperty);
+     
+     dataPoints.push({
+       id,
+       x,
+       y,
+       z,
+       value: colorValue,
+       experiment
+     });
+   });
+   
+   return dataPoints;
+ };
+ 
+ // Filter experiments based on property ranges
+ export const filterExperiments = (
+   propertyFilters: { property: Property; min: number; max: number }[]
+ ): string[] => {
+   return Object.entries(dataset)
+     .filter(([id, experiment]) => {
+       // Check if experiment passes all filters
+       return propertyFilters.every(filter => {
+         const { property, min, max } = filter;
+         let value;
+         
+         if (Object.keys(experiment.inputs).includes(property)) {
+           value = experiment.inputs[property as InputProperty];
+         } else {
+           value = experiment.outputs[property as OutputProperty];
+         }
+         
+         return value >= min && value <= max;
+       });
+     })
+     .map(([id]) => id);
+ };
+ 
+ // Group experiments by a property within ranges
+ export const groupExperimentsByProperty = (
+   property: Property,
+   ranges: number[]
+ ): { [range: string]: string[] } => {
+   const result: { [range: string]: string[] } = {};
+   
+   // Create range buckets
+   for (let i = 0; i < ranges.length - 1; i++) {
+     const rangeName = `${ranges[i]}-${ranges[i + 1]}`;
+     result[rangeName] = [];
+   }
+   
+   // Assign experiments to ranges
+   Object.entries(dataset).forEach(([id, experiment]) => {
+     let value;
+     
+     if (Object.keys(experiment.inputs).includes(property)) {
+       value = experiment.inputs[property as InputProperty];
+     } else {
+       value = experiment.outputs[property as OutputProperty];
+     }
+     
+     // Find the range this value belongs to
+     for (let i = 0; i < ranges.length - 1; i++) {
+       if (value >= ranges[i] && value < ranges[i + 1]) {
+         const rangeName = `${ranges[i]}-${ranges[i + 1]}`;
+         result[rangeName].push(id);
+         break;
+       }
+     }
+   });
+   
+   return result;
+ };
+ 
+ // Calculate correlations between properties
+ export const calculateCorrelation = (property1: Property, property2: Property): number => {
+   const values1: number[] = [];
+   const values2: number[] = [];
+   
+   Object.values(dataset).forEach(experiment => {
+     let value1;
+     let value2;
+     
+     if (Object.keys(experiment.inputs).includes(property1)) {
+       value1 = experiment.inputs[property1 as InputProperty];
+     } else {
+       value1 = experiment.outputs[property1 as OutputProperty];
+     }
+     
+     if (Object.keys(experiment.inputs).includes(property2)) {
+       value2 = experiment.inputs[property2 as InputProperty];
+     } else {
+       value2 = experiment.outputs[property2 as OutputProperty];
+     }
+     
+     values1.push(value1);
+     values2.push(value2);
+   });
+   
+   // Calculate correlation coefficient
+   const n = values1.length;
+   const sum1 = values1.reduce((a, b) => a + b, 0);
+   const sum2 = values2.reduce((a, b) => a + b, 0);
+   const sum1Sq = values1.reduce((a, b) => a + b * b, 0);
+   const sum2Sq = values2.reduce((a, b) => a + b * b, 0);
+   const sumProd = values1.reduce((a, b, i) => a + b * values2[i], 0);
+   
+   const numerator = n * sumProd - sum1 * sum2;
+   const denominator = Math.sqrt((n * sum1Sq - sum1 * sum1) * (n * sum2Sq - sum2 * sum2));
+   
+   if (denominator === 0) return 0;
+   return numerator / denominator;
+ };
+ 
+ // Get experiment by ID
+ export const getExperimentById = (id: string) => {
+   return dataset[id];
+ };
+ 
+ // Get experiment properties formatted for display
+ export const getFormattedExperimentData = (id: string) => {
+   const experiment = getExperimentById(id);
+   if (!experiment) return null;
+   
+   const formattedInputs = Object.entries(experiment.inputs)
+     .filter(([_, value]) => value > 0) // Only include non-zero values
+     .map(([property, value]) => ({
+       property,
+       value: value.toFixed(1),
+     }));
+   
+   const formattedOutputs = Object.entries(experiment.outputs).map(([property, value]) => ({
+     property,
+     value: property === "Cure Time" ? value.toFixed(2) : value.toFixed(1),
+   }));
+   
+   return {
+     id,
+     inputs: formattedInputs,
+     outputs: formattedOutputs,
+   };
+ };

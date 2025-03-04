@@ -14,6 +14,7 @@ import {
   TooltipContent 
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import InfoButton from './ui/info-button';
 
 // Map output keys to symbols and icons
 const getOutputSymbol = (key: string): { symbol: string; icon: React.ReactNode } => {
@@ -228,14 +229,10 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     setViewZoom((zoom) => Math.max(0.5, Math.min(2.5, zoom + delta)));
   };
 
-  // Custom event to toggle auto-rotate
+  // This is intentionally left empty to avoid infinite recursion
   const onAutoRotateToggle = () => {
-    if (typeof autoRotate === 'boolean') {
-      // Component has internal state setter
-      if (onAutoRotateToggle) {
-        onAutoRotateToggle();
-      }
-    }
+    // We don't need to do anything here since we're just stopping auto-rotation
+    // when the user starts dragging
   };
 
   const formatExperimentId = (id: string) => {
@@ -296,6 +293,11 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     const colorMin = Math.min(...colorValues);
     const colorMax = Math.max(...colorValues);
 
+    // Scale factors for proper display in chart space
+    const scaleX = (val: number) => scaleLinear(val, xMin, xMax, -1, 1);
+    const scaleY = (val: number) => scaleLinear(val, yMin, yMax, -1, 1);
+    const scaleZ = (val: number) => scaleLinear(val, zMin, zMax, -1, 1);
+    
     // Convert degrees to radians for both rotations
     const yAngleRad = (yRotation * Math.PI) / 180;
     const xAngleRad = (xRotation * Math.PI) / 180;
@@ -307,13 +309,18 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     const sinX = Math.sin(xAngleRad);
 
     return dataPoints.map(point => {
+      // Scale the non-normalized values to fit in the visualization space
+      const scaledX = scaleX(point.x);
+      const scaledY = scaleY(point.y);
+      const scaledZ = scaleZ(point.z);
+      
       // Apply Y-axis rotation (horizontal rotation)
-      const xRotatedY = point.x * cosY - point.z * sinY;
-      const zRotatedY = point.z * cosY + point.x * sinY;
+      const xRotatedY = scaledX * cosY - scaledZ * sinY;
+      const zRotatedY = scaledZ * cosY + scaledX * sinY;
       
       // Apply X-axis rotation (vertical tilt)
-      const yRotatedX = point.y * cosX - zRotatedY * sinX;
-      const zRotatedX = zRotatedY * cosX + point.y * sinX;
+      const yRotatedX = scaledY * cosX - zRotatedY * sinX;
+      const zRotatedX = zRotatedY * cosX + scaledY * sinX;
       
       const color = getColorForValue(point.value || 0, colorMin, colorMax);
       
@@ -330,6 +337,11 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
       
       return {
         ...point,
+        // Store original (raw) values for tooltip display
+        rawX: point.x,
+        rawY: point.y, 
+        rawZ: point.z,
+        // Use transformed coordinates for display
         x: xRotatedY,
         y: yRotatedX,
         z: zRotatedX,
@@ -345,14 +357,18 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
     active?: boolean;
     payload?: Array<{
       payload: DataPoint & {
+        rawX: number;
+        rawY: number;
+        rawZ: number;
         color: string;
         size: number;
         opacity: number;
         glow: boolean;
+        experiment: any; // Experiment data
       };
     }>;
   }
-
+  
   const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -362,46 +378,74 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
         return value.toFixed(4).replace(/\.?0+$/, '').replace(/\.$/, '');
       };
       
+      // Determine if the property is an input or output
+      const getPropertyType = (property: string): 'input' | 'output' => {
+        if (data.experiment && data.experiment.inputs && property in data.experiment.inputs) {
+          return 'input';
+        }
+        return 'output';
+      };
+      
+      // Get the appropriate symbol and icon based on property type
+      const getSymbolAndIcon = (property: string) => {
+        const propertyType = getPropertyType(property);
+        if (propertyType === 'input') {
+          return getInputSymbol(property);
+        } else {
+          return getOutputSymbol(property);
+        }
+      };
+      
+      const xSymbolAndIcon = getSymbolAndIcon(xProperty as string);
+      const ySymbolAndIcon = getSymbolAndIcon(yProperty as string);
+      const zSymbolAndIcon = getSymbolAndIcon(zProperty as string);
+      const colorSymbolAndIcon = colorProperty ? getSymbolAndIcon(colorProperty as string) : null;
+      
       return (
         <div 
           className="bg-white/95 p-2 border border-blue-200 rounded-md shadow-md backdrop-blur cursor-pointer animate-fade-in"
           style={{
             boxShadow: '0 8px 20px -4px rgba(113, 90, 235, 0.25), 0 6px 8px -4px rgba(113, 90, 235, 0.15)',
-            maxWidth: '160px',
+            maxWidth: '180px',
             fontSize: '11px'
           }}
         >
           <p className="font-bold mb-1 text-blue-800 text-xs">{data.id}</p>
           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
             <div className="flex items-center gap-1">
-              {getOutputSymbol(xProperty as string).icon}
-              <span className="text-slate-500 text-xs">{getOutputSymbol(xProperty as string).symbol}:</span>
+              {xSymbolAndIcon.icon}
+              <span className="text-slate-500 text-xs">{xSymbolAndIcon.symbol}:</span>
             </div>
-            <span className="font-medium text-right text-slate-700">{formatValue(data.x)}</span>
+            <span className="font-medium text-right text-slate-700">{formatValue(data.rawX)}</span>
             
             <div className="flex items-center gap-1">
-              {getOutputSymbol(yProperty as string).icon}
-              <span className="text-slate-500 text-xs">{getOutputSymbol(yProperty as string).symbol}:</span>
+              {ySymbolAndIcon.icon}
+              <span className="text-slate-500 text-xs">{ySymbolAndIcon.symbol}:</span>
             </div>
-            <span className="font-medium text-right text-slate-700">{formatValue(data.y)}</span>
+            <span className="font-medium text-right text-slate-700">{formatValue(data.rawY)}</span>
             
             <div className="flex items-center gap-1">
-              {getOutputSymbol(zProperty as string).icon}
-              <span className="text-slate-500 text-xs">{getOutputSymbol(zProperty as string).symbol}:</span>
+              {zSymbolAndIcon.icon}
+              <span className="text-slate-500 text-xs">{zSymbolAndIcon.symbol}:</span>
             </div>
-            <span className="font-medium text-right text-slate-700">{formatValue(data.z)}</span>
+            <span className="font-medium text-right text-slate-700">{formatValue(data.rawZ)}</span>
             
-            {colorProperty && (
+            {colorProperty && colorSymbolAndIcon && (
               <>
                 <div className="flex items-center gap-1">
-                  {getOutputSymbol(colorProperty as string).icon}
-                  <span className="text-slate-500 text-xs">{getOutputSymbol(colorProperty as string).symbol}:</span>
+                  {colorSymbolAndIcon.icon}
+                  <span className="text-slate-500 text-xs">{colorSymbolAndIcon.symbol}:</span>
                 </div>
                 <span className="font-medium text-right text-slate-700">{formatValue(data.value)}</span>
               </>
             )}
           </div>
           
+          <div className="mt-2 pt-2 border-t border-blue-100">
+            <div className="text-[9px] text-blue-600 font-medium">
+              {formatExperimentIdForList(data.id)}
+            </div>
+          </div>
         </div>
       );
     }
@@ -584,7 +628,17 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
         </div>
           
         <div className="scene-container flex-grow relative rounded-lg overflow-hidden">
-          <div className="absolute top-4 right-4 z-10">
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+            <InfoButton 
+              title="Experiment List Toggle" 
+              content={
+                <div className="space-y-2">
+                  <p>Click this button to show or hide the experiment list panel.</p>
+                  <p>The experiment list shows all experiments in the dataset.</p>
+                </div>
+              }
+              position="bottom"
+            />
             <button 
               className="bg-white/90 p-2 rounded-full shadow-md hover:bg-white transition-all"
               onClick={() => setShowExperimentList(!showExperimentList)}
@@ -595,6 +649,20 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
           </div>
           
           <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur p-3 rounded-md shadow-md border border-gray-200 text-xs">
+            <div className="absolute top-1 right-1">
+              <InfoButton 
+                title="Visualization Legend" 
+                content={
+                  <div className="space-y-2">
+                    <p>This legend shows information about the 3D visualization.</p>
+                    <p>The depth axis represents the selected Z property.</p>
+                    <p>The color gradient shows the range of values for the selected color property.</p>
+                    <p>You can drag to rotate the view and scroll to zoom in and out.</p>
+                  </div>
+                }
+                position="bottom"
+              />
+            </div>
             <div className="flex items-center gap-1 mb-2">
               <Layers size={14} className="text-blue-500" />
               <span className="font-medium">{zProperty}</span>
@@ -702,10 +770,25 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
       {showExperimentList && (
         <div className="w-64 bg-white/90 backdrop-blur-sm border-l border-blue-100 flex flex-col shadow-lg animate-fade-in">
           <div className="p-3 border-b">
-            <h3 className="font-medium text-sm">Experiment List</h3>
-            <p className="text-xs text-gray-500">
-              {dataPoints.length} experiments loaded
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-sm">Experiment List</h3>
+                <p className="text-xs text-gray-500">
+                  {dataPoints.length} experiments loaded
+                </p>
+              </div>
+              <InfoButton 
+                title="Experiment List" 
+                content={
+                  <div className="space-y-2">
+                    <p>This panel shows all experiments in the dataset.</p>
+                    <p>Click on any experiment to select it and view its details.</p>
+                    <p>You can toggle this panel on and off using the arrow button in the main view.</p>
+                  </div>
+                }
+                position="bottom"
+              />
+            </div>
           </div>
 
           <div 
@@ -809,3 +892,4 @@ const ScatterPlot3D: React.FC<ScatterPlot3DProps> = ({
 };
 
 export default ScatterPlot3D;
+

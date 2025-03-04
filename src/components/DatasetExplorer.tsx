@@ -189,19 +189,7 @@ const DatasetExplorer: React.FC = () => {
                 <Beaker className="h-6 w-6 mr-2 text-primary" />
                 Uncountable Dataset Visualization
               </h1>
-              <div className="ml-2">
-                <InfoButton 
-                  title="Dataset Explorer" 
-                  content={
-                    <div className="space-y-2">
-                      <p>This application helps you explore relationships between different properties in the dataset.</p>
-                      <p>Click the question mark icons throughout the app to learn more about each panel.</p>
-                      <p>You can also click the "Show Tutorial" button to see the full tutorial again.</p>
-                    </div>
-                  }
-                  position="bottom"
-                />
-              </div>
+              
             </div>
             
             <div className="flex items-center gap-3">
@@ -290,21 +278,7 @@ const DatasetExplorer: React.FC = () => {
             </Card>
           ) : (
             <Card className="w-full h-full overflow-hidden border-none glass-card">
-              <div className="absolute top-2 right-2 z-10">
-                <InfoButton 
-                  title="3D Visualization" 
-                  content={
-                    <div className="space-y-2">
-                      <p>The 3D Visualization displays a scatter plot where each point represents an experiment.</p>
-                      <p>Drag to rotate the view and see the data from different angles.</p>
-                      <p>Scroll to zoom in and out.</p>
-                      <p>Click on any point to view detailed information about that experiment.</p>
-                      <p>The color of each point corresponds to the value of the selected color property.</p>
-                    </div>
-                  }
-                  position="left"
-                />
-              </div>
+              
               <Suspense fallback={
                 <div className="w-full h-full flex items-center justify-center chart-area">
                   <div className="loading-spinner" />
@@ -364,22 +338,7 @@ const DatasetExplorer: React.FC = () => {
           
           {/* Updated tips card to match current UI */}
           <Card className="p-5 glass-card bg-gradient-to-br from-primary/5 to-primary/10 border-none">
-            <h3 className="font-medium mb-3 flex items-center gap-2">
-              <Info className="h-4 w-4 text-primary" />
-              Tips
-              <div className="ml-auto">
-                <InfoButton 
-                  title="Tips" 
-                  content={
-                    <div className="space-y-2">
-                      <p>These tips provide quick reminders on how to interact with the visualization.</p>
-                      <p>Click and drag to rotate the view, use the scroll wheel to zoom, and click on points to select experiments.</p>
-                    </div>
-                  }
-                  position="left"
-                />
-              </div>
-            </h3>
+           
             <ul className="space-y-2 text-sm">
               {[
                 { icon: <MousePointer className="h-3.5 w-3.5 text-primary/70" />, text: "Click and drag to rotate the view" },
